@@ -42,6 +42,7 @@ interface Project {
     ciclosVida: number;
     limiteCorrenteCarga: number;
     custoAhBateria: number;
+    correnteMaximaInversor: number;
   };
 }
 
@@ -219,6 +220,7 @@ export default function App() {
   const [ciclosVida, setCiclosVida] = useState<number>(500);
   const [limiteCorrenteCarga, setLimiteCorrenteCarga] = useState<number>(20);
   const [custoAhBateria, setCustoAhBateria] = useState<number>(10);
+  const [correnteMaximaInversor, setCorrenteMaximaInversor] = useState<number>(100);
 
   const [clienteNome, setClienteNome] = useState('');
   const [clienteTelefone, setClienteTelefone] = useState('');
@@ -296,6 +298,7 @@ export default function App() {
         ciclosVida,
         limiteCorrenteCarga,
         custoAhBateria,
+        correnteMaximaInversor,
       }
     };
     setProjetos([...projetos, novoProjeto]);
@@ -327,6 +330,7 @@ export default function App() {
     setCiclosVida(projeto.data.ciclosVida || 500);
     setLimiteCorrenteCarga(projeto.data.limiteCorrenteCarga || 20);
     setCustoAhBateria(projeto.data.custoAhBateria || 10);
+    setCorrenteMaximaInversor(projeto.data.correnteMaximaInversor || 100);
     
     setActiveTab('dimensionamento');
   };
@@ -626,6 +630,14 @@ export default function App() {
         alertasTecnicos.push(`MPPT no Limite: A corrente do controlador (${ampControlador}A) é alta. Considere usar múltiplos controladores ou aumentar a tensão do sistema.`);
       }
 
+      // Validação de corrente máxima do inversor vs capacidade de descarga segura da bateria
+      const taxaDescargaSegura = tipoBateria === 'Chumbo' ? 0.2 : 1.0; // 0.2C para Chumbo, 1C para Lítio
+      const correnteDescargaSegura = bateriasEmParalelo * capacidadeBateriaIndividual * taxaDescargaSegura;
+
+      if (correnteMaximaInversor > correnteDescargaSegura) {
+        alertasTecnicos.push(`Corrente de Descarga: A corrente máxima do inversor (${correnteMaximaInversor}A) excede a capacidade de descarga segura do banco de baterias (${correnteDescargaSegura.toFixed(0)}A). Risco de danos às baterias.`);
+      }
+
       return {
         maiorPico: isNaN(maiorPico) || !isFinite(maiorPico) ? 0 : Math.ceil(maiorPico),
         nP: isNaN(nP) || !isFinite(nP) ? 0 : nP,
@@ -646,7 +658,7 @@ export default function App() {
         custoTotalBaterias: isNaN(custoTotalBaterias) || !isFinite(custoTotalBaterias) ? 0 : custoTotalBaterias,
         alertasTecnicos
       };
-  }, [itens, potPainel, tensao, tipoBateria, comprimentoCabo, eficienciaInversor, fatorCorrecaoConsumo, eficienciaSistema, diasAutonomia, dod, eficienciaCoulombica, fatorTemperatura, capacidadeBateriaIndividual, tensaoBateriaIndividual, custoAhBateria, horasSolPleno, custoWpPainel, custoWpInversor]);
+  }, [itens, potPainel, tensao, tipoBateria, comprimentoCabo, eficienciaInversor, fatorCorrecaoConsumo, eficienciaSistema, diasAutonomia, dod, eficienciaCoulombica, fatorTemperatura, capacidadeBateriaIndividual, tensaoBateriaIndividual, custoAhBateria, horasSolPleno, custoWpPainel, custoWpInversor, correnteMaximaInversor]);
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -1082,6 +1094,18 @@ export default function App() {
                         className="mt-1.5 w-full bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all dark:text-white"
                         min="0"
                         step="0.1"
+                      />
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Corrente Máxima do Inversor (A):
+                      <input 
+                        type="number" 
+                        value={correnteMaximaInversor || ''} 
+                        onChange={(e) => setCorrenteMaximaInversor(parseFloat(e.target.value) || 0)} 
+                        className="mt-1.5 w-full bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all dark:text-white"
+                        min="0"
                       />
                     </label>
                   </div>
