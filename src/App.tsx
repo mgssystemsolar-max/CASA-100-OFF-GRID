@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Printer, Trash2, LayoutDashboard, Users, FolderOpen, Settings, Calculator, FileText, Eye, EyeOff, Sun, Moon, LogOut, HelpCircle, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface LoadItem {
   id: string;
@@ -335,6 +337,97 @@ export default function App() {
     }
   };
 
+  const gerarPDF = () => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(30, 58, 138); // Azul SolarPro
+    doc.text("SOLARPRO", 14, 20);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text("Proposta Técnica e Comercial - Sistema Off-Grid", 14, 28);
+    
+    // Client Info
+    doc.setFontSize(10);
+    doc.setTextColor(50);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 140, 20);
+    if (clienteNome) doc.text(`Cliente: ${clienteNome}`, 140, 26);
+    if (clienteTelefone) doc.text(`Telefone: ${clienteTelefone}`, 140, 32);
+    if (clienteEmail) doc.text(`Email: ${clienteEmail}`, 140, 38);
+    if (clienteCidade) doc.text(`Cidade/UF: ${clienteCidade}`, 140, 44);
+
+    doc.setFontSize(14);
+    doc.setTextColor(30, 58, 138);
+    doc.text("1. Levantamento de Cargas", 14, 55);
+
+    const colunas = ["Equipamento", "Qtd", "Potência (W)", "Uso (h)", "Total (Wh)"];
+    const linhas = itens.map(item => [
+      item.nome,
+      item.qtd,
+      item.w + "W",
+      item.h + "h",
+      (item.w * item.h * item.qtd) + "Wh"
+    ]);
+
+    autoTable(doc, {
+      head: [colunas],
+      body: linhas,
+      startY: 60,
+      theme: 'striped',
+      headStyles: { fillColor: [30, 58, 138] },
+      foot: [["", "", "", "Consumo Diário Total", `${totalWh} Wh`]],
+      footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' }
+    });
+
+    let finalY = (doc as any).lastAutoTable.finalY || 60;
+
+    doc.setFontSize(14);
+    doc.setTextColor(30, 58, 138);
+    doc.text("2. Dimensionamento do Sistema", 14, finalY + 15);
+
+    autoTable(doc, {
+      body: [
+        ["Potência Total dos Painéis", `${(nP * potPainel).toLocaleString('pt-BR')} Wp (${nP} un. de ${potPainel}W)`],
+        ["Capacidade do Banco de Baterias", `${(totalBaterias * capacidadeBateriaIndividual * tensaoBateriaIndividual / 1000).toLocaleString('pt-BR')} kWh (${totalBaterias} un. de ${tensaoBateriaIndividual}V/${capacidadeBateriaIndividual}Ah)`],
+        ["Arranjo de Baterias", `${bateriasEmSerie} em série x ${bateriasEmParalelo} em paralelo`],
+        ["Inversor Mínimo Recomendado", `${maiorPico} W`],
+        ["Controlador de Carga (MPPT)", `${amp} A`],
+        ["Bitola Mínima do Cabo (Bateria)", `${bitola} mm²`],
+      ],
+      startY: finalY + 20,
+      theme: 'grid',
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 80 } }
+    });
+
+    finalY = (doc as any).lastAutoTable.finalY || finalY + 20;
+
+    if (finalY > 250) {
+      doc.addPage();
+      finalY = 20;
+    } else {
+      finalY += 15;
+    }
+
+    doc.setFontSize(14);
+    doc.setTextColor(30, 58, 138);
+    doc.text("3. Análise Financeira Estimada (10 Anos)", 14, finalY);
+
+    autoTable(doc, {
+      body: [
+        ["Investimento Inicial Estimado", formatCurrency(inv)],
+        ["Custo de Manutenção (Baterias)", formatCurrency(man)],
+        ["Lucro Líquido Estimado", formatCurrency(lucro)],
+      ],
+      startY: finalY + 5,
+      theme: 'grid',
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 80 } }
+    });
+
+    doc.save(`Proposta_SolarPro_${clienteNome || 'Cliente'}.pdf`);
+  };
+
     const {
       maiorPico,
       nP,
@@ -620,7 +713,7 @@ export default function App() {
                 Salvar Projeto
               </button>
               <button 
-                onClick={() => window.print()} 
+                onClick={gerarPDF} 
                 className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-blue-800 transition-colors text-white px-6 py-2.5 rounded-xl font-medium shadow-sm"
               >
                 <Printer size={18} />
