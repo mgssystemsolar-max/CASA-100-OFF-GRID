@@ -425,6 +425,73 @@ export default function App() {
       columnStyles: { 0: { fontStyle: 'bold', cellWidth: 80 } }
     });
 
+    finalY = (doc as any).lastAutoTable.finalY || finalY + 30;
+
+    if (finalY > 220) {
+      doc.addPage();
+      finalY = 20;
+    } else {
+      finalY += 15;
+    }
+
+    doc.setFontSize(14);
+    doc.setTextColor(30, 58, 138);
+    doc.text("4. Diagrama Unifilar Simplificado", 14, finalY);
+    
+    finalY += 10;
+    
+    // Diagrama Unifilar
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    
+    const drawBox = (x: number, y: number, w: number, h: number, text: string, color: number[]) => {
+      doc.setFillColor(color[0], color[1], color[2]);
+      doc.roundedRect(x, y, w, h, 2, 2, 'F');
+      doc.text(text, x + w / 2, y + h / 2 + 1, { align: 'center', baseline: 'middle' });
+    };
+
+    const drawArrow = (x: number, y: number, w: number) => {
+      doc.setDrawColor(100, 100, 100);
+      doc.setFillColor(100, 100, 100);
+      doc.setLineWidth(0.5);
+      doc.line(x, y, x + w, y);
+      doc.triangle(x + w, y, x + w - 2, y - 2, x + w - 2, y + 2, 'F');
+    };
+
+    const boxW = 26;
+    const boxH = 10;
+    const gap = 12;
+    let currentX = 14;
+
+    drawBox(currentX, finalY, boxW, boxH, "Painel", [30, 58, 138]);
+    drawArrow(currentX + boxW, finalY + boxH / 2, gap);
+    currentX += boxW + gap;
+
+    drawBox(currentX, finalY, boxW, boxH, "String Box", [220, 38, 38]);
+    drawArrow(currentX + boxW, finalY + boxH / 2, gap);
+    currentX += boxW + gap;
+
+    drawBox(currentX, finalY, boxW, boxH, "Controlador", [245, 158, 11]);
+    drawArrow(currentX + boxW, finalY + boxH / 2, gap);
+    currentX += boxW + gap;
+
+    drawBox(currentX, finalY, boxW, boxH, "Bateria", [34, 197, 94]);
+    drawArrow(currentX + boxW, finalY + boxH / 2, gap);
+    currentX += boxW + gap;
+
+    drawBox(currentX, finalY, boxW, boxH, "Inversor", [100, 116, 139]);
+
+    finalY += boxH + 15;
+
+    // Isenção de responsabilidade
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.setFont("helvetica", "italic");
+    const disclaimer = "Cláusula de Isenção: Este dimensionamento baseia-se estritamente nas cargas informadas. Alterações no perfil de uso podem afetar a autonomia.";
+    const splitDisclaimer = doc.splitTextToSize(disclaimer, 180);
+    doc.text(splitDisclaimer, 14, finalY);
+    doc.setFont("helvetica", "normal");
+
     doc.save(`Proposta_SolarPro_${clienteNome || 'Cliente'}.pdf`);
   };
 
