@@ -11,6 +11,38 @@ interface LoadItem {
   fatorPartida: number;
 }
 
+interface Project {
+  id: string;
+  name: string;
+  date: string;
+  data: {
+    clienteNome: string;
+    clienteTelefone: string;
+    clienteEmail: string;
+    clienteCidade: string;
+    itens: LoadItem[];
+    potPainel: number;
+    tensao: number;
+    tipoBateria: string;
+    comprimentoCabo: number;
+    eficienciaInversor: number;
+    fatorCorrecaoConsumo: number;
+    eficienciaSistema: number;
+    horasSolPleno: number;
+    diasAutonomia: number;
+    dod: number;
+    eficienciaCoulombica: number;
+    fatorTemperatura: number;
+    capacidadeBateriaIndividual: number;
+    tensaoBateriaIndividual: number;
+    custoWpPainel: number;
+    custoWpInversor: number;
+    ciclosVida: number;
+    limiteCorrenteCarga: number;
+    custoAhBateria: number;
+  };
+}
+
 const StepBadge = ({ num }: { num: number }) => (
   <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-yellow-500 text-white font-bold text-xs mr-2 shadow-sm shrink-0">
     {num}
@@ -147,8 +179,17 @@ export default function App() {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
-  const [activeTab, setActiveTab] = useState<'dimensionamento' | 'suporte'>('dimensionamento');
+  const [activeTab, setActiveTab] = useState<'dimensionamento' | 'suporte' | 'projetos'>('dimensionamento');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const [projetos, setProjetos] = useState<Project[]>(() => {
+    const saved = localStorage.getItem('projetos');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('projetos', JSON.stringify(projetos));
+  }, [projetos]);
 
   const [itens, setItens] = useState<LoadItem[]>([
     { id: '1', nome: "Geladeira", qtd: 1, w: 150, h: 24, fatorPartida: 5 },
@@ -221,6 +262,77 @@ export default function App() {
 
   const removerItem = (id: string) => {
     setItens(itens.filter(item => item.id !== id));
+  };
+
+  const salvarProjeto = () => {
+    const novoProjeto: Project = {
+      id: Date.now().toString(),
+      name: clienteNome || `Projeto ${new Date().toLocaleDateString()}`,
+      date: new Date().toISOString(),
+      data: {
+        clienteNome,
+        clienteTelefone,
+        clienteEmail,
+        clienteCidade,
+        itens,
+        potPainel,
+        tensao,
+        tipoBateria,
+        comprimentoCabo,
+        eficienciaInversor,
+        fatorCorrecaoConsumo,
+        eficienciaSistema,
+        horasSolPleno,
+        diasAutonomia,
+        dod,
+        eficienciaCoulombica,
+        fatorTemperatura,
+        capacidadeBateriaIndividual,
+        tensaoBateriaIndividual,
+        custoWpPainel,
+        custoWpInversor,
+        ciclosVida,
+        limiteCorrenteCarga,
+        custoAhBateria,
+      }
+    };
+    setProjetos([...projetos, novoProjeto]);
+    alert('Projeto salvo com sucesso!');
+  };
+
+  const carregarProjeto = (projeto: Project) => {
+    setClienteNome(projeto.data.clienteNome);
+    setClienteTelefone(projeto.data.clienteTelefone);
+    setClienteEmail(projeto.data.clienteEmail);
+    setClienteCidade(projeto.data.clienteCidade);
+    setItens(projeto.data.itens);
+    setPotPainel(projeto.data.potPainel);
+    setTensao(projeto.data.tensao);
+    setTipoBateria(projeto.data.tipoBateria);
+    setComprimentoCabo(projeto.data.comprimentoCabo);
+    setEficienciaInversor(projeto.data.eficienciaInversor);
+    setFatorCorrecaoConsumo(projeto.data.fatorCorrecaoConsumo);
+    setEficienciaSistema(projeto.data.eficienciaSistema);
+    setHorasSolPleno(projeto.data.horasSolPleno);
+    setDiasAutonomia(projeto.data.diasAutonomia);
+    setDod(projeto.data.dod);
+    setEficienciaCoulombica(projeto.data.eficienciaCoulombica);
+    setFatorTemperatura(projeto.data.fatorTemperatura || 1);
+    setCapacidadeBateriaIndividual(projeto.data.capacidadeBateriaIndividual);
+    setTensaoBateriaIndividual(projeto.data.tensaoBateriaIndividual);
+    setCustoWpPainel(projeto.data.custoWpPainel);
+    setCustoWpInversor(projeto.data.custoWpInversor);
+    setCiclosVida(projeto.data.ciclosVida || 500);
+    setLimiteCorrenteCarga(projeto.data.limiteCorrenteCarga || 20);
+    setCustoAhBateria(projeto.data.custoAhBateria || 10);
+    
+    setActiveTab('dimensionamento');
+  };
+
+  const excluirProjeto = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este projeto?')) {
+      setProjetos(projetos.filter(p => p.id !== id));
+    }
   };
 
     const {
@@ -413,10 +525,14 @@ export default function App() {
             <Users size={20} className="shrink-0" />
             {!isSidebarCollapsed && <span className="whitespace-nowrap">Clientes</span>}
           </a>
-          <a href="#" className={`flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-400 font-medium transition-colors ${isSidebarCollapsed ? 'justify-center px-0' : ''}`} title="Projetos">
+          <button 
+            onClick={() => setActiveTab('projetos')} 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'projetos' ? 'bg-blue-900/30 text-blue-400' : 'hover:bg-slate-800 text-slate-400'} ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
+            title="Projetos"
+          >
             <FolderOpen size={20} className="shrink-0" />
             {!isSidebarCollapsed && <span className="whitespace-nowrap">Projetos</span>}
-          </a>
+          </button>
           <button 
             onClick={() => setActiveTab('dimensionamento')} 
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'dimensionamento' ? 'bg-blue-900/30 text-blue-400' : 'hover:bg-slate-800 text-slate-400'} ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
@@ -495,13 +611,22 @@ export default function App() {
               <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Dimensionamento Solar</h2>
               <p className="text-slate-500 dark:text-slate-400 text-sm">Configure o sistema off-grid para seu cliente</p>
             </div>
-            <button 
-              onClick={() => window.print()} 
-              className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-blue-800 transition-colors text-white px-6 py-2.5 rounded-xl font-medium shadow-sm"
-            >
-              <Printer size={18} />
-              Exportar Proposta
-            </button>
+            <div className="flex gap-3">
+              <button 
+                onClick={salvarProjeto} 
+                className="flex items-center gap-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors text-slate-800 dark:text-white px-6 py-2.5 rounded-xl font-medium shadow-sm"
+              >
+                <FolderOpen size={18} />
+                Salvar Projeto
+              </button>
+              <button 
+                onClick={() => window.print()} 
+                className="flex items-center gap-2 bg-[#1e3a8a] hover:bg-blue-800 transition-colors text-white px-6 py-2.5 rounded-xl font-medium shadow-sm"
+              >
+                <Printer size={18} />
+                Exportar Proposta
+              </button>
+            </div>
           </header>
 
           <div className="grid xl:grid-cols-3 gap-6">
@@ -1122,6 +1247,66 @@ export default function App() {
             </div>
           </div>
           </>
+          ) : activeTab === 'projetos' ? (
+            <div className="space-y-8">
+              <header className="mb-8">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Projetos Salvos</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Gerencie seus dimensionamentos</p>
+              </header>
+
+              {projetos.length === 0 ? (
+                <div className="bg-white dark:bg-slate-800 p-12 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 text-center">
+                  <FolderOpen className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Nenhum projeto salvo</h3>
+                  <p className="text-slate-500 dark:text-slate-400">Você ainda não salvou nenhum dimensionamento. Vá para a aba Dimensionamento e clique em "Salvar Projeto".</p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {projetos.map(projeto => (
+                    <div key={projeto.id} className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="font-bold text-slate-800 dark:text-white text-lg">{projeto.name}</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            {new Date(projeto.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => excluirProjeto(projeto.id)}
+                          className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                          title="Excluir projeto"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-2 mb-6 flex-1">
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">Cliente:</span> {projeto.data.clienteNome || 'Não informado'}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">Cidade:</span> {projeto.data.clienteCidade || 'Não informado'}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">Cargas:</span> {projeto.data.itens.length} itens
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">Sistema:</span> {projeto.data.tensao}V / {projeto.data.tipoBateria}
+                        </p>
+                      </div>
+
+                      <button 
+                        onClick={() => carregarProjeto(projeto)}
+                        className="w-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Calculator size={18} />
+                        Carregar Projeto
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="space-y-8">
               <header className="mb-8">
