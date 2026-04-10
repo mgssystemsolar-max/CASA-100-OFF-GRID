@@ -638,6 +638,10 @@ export default function App() {
         alertasTecnicos.push(`Corrente de Descarga: A corrente máxima do inversor (${correnteMaximaInversor}A) excede a capacidade de descarga segura do banco de baterias (${correnteDescargaSegura.toFixed(0)}A). Risco de danos às baterias.`);
       }
 
+      if (quedaPercentual > 5) {
+        alertasTecnicos.push(`Queda de Tensão Crítica: A queda de tensão calculada é de ${quedaPercentual.toFixed(1)}% (acima de 5%). Considere utilizar cabos de maior bitola ou reduzir a distância (${comprimentoCabo}m) entre os equipamentos.`);
+      }
+
       return {
         maiorPico: isNaN(maiorPico) || !isFinite(maiorPico) ? 0 : Math.ceil(maiorPico),
         nP: isNaN(nP) || !isFinite(nP) ? 0 : nP,
