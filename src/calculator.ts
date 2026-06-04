@@ -25,24 +25,38 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   const isGrid = s.sizing.systemType === 'On-Grid';
   
   // 1. Balanço Energético
-  const dailyKwh = s.consumption.dailyKwh > 0 ? s.consumption.dailyKwh : (s.consumption.monthlyAvgKwh / 30);
-  const monthlyKwh = s.consumption.monthlyAvgKwh > 0 ? s.consumption.monthlyAvgKwh : (dailyKwh * 30);
+  let dailyKwh = 0;
+  let monthlyKwh = 0;
+
+  if (s.consumption.method === 'loadProfile' && s.consumption.loads) {
+    s.consumption.loads.forEach(load => {
+      // Wh/day
+      const whDay = load.qty * load.powerW * load.hoursPerDay;
+      const whMonth = whDay * load.daysPerMonth;
+      dailyKwh += whDay / 1000;
+      monthlyKwh += whMonth / 1000;
+    });
+  } else {
+    dailyKwh = s.consumption.dailyKwh > 0 ? s.consumption.dailyKwh : (s.consumption.monthlyAvgKwh / 30);
+    monthlyKwh = s.consumption.monthlyAvgKwh > 0 ? s.consumption.monthlyAvgKwh : (dailyKwh * 30);
+  }
+  
   const annualEnergyKwh = monthlyKwh * 12;
 
-  // 2. Perdas (Performance Ratio)
-  const totalLosses = 1 - (
+  // 2. Perdas (Performance Ratio) e Cachoeira de Perdas
+  const hsp = s.climate.hsp || 4.5;
+  const tempLoss = 0.05; // ~5% loss from temperature on average
+  const inverterLoss = 1 - (s.equipment.inverterEfficiency / 100);
+
+  // 3. Sizing PV
+  const totalLossesComp = 1 - (
     (1 - s.sizing.losses.shading / 100) * 
     (1 - s.sizing.losses.soiling / 100) * 
     (1 - s.sizing.losses.mismatch / 100) * 
     (1 - s.sizing.losses.cabling / 100)
   );
-  
-  const tempLoss = 0.05; // ~5% loss from temperature on average
-  const inverterLoss = 1 - (s.equipment.inverterEfficiency / 100);
-  const PR = isGrid ? (1 - totalLosses) * (1 - tempLoss) * (1 - inverterLoss) : 0.65; // Off-grid PR is typically lower due to battery cycle losses
+  const PR = isGrid ? (1 - totalLossesComp) * (1 - tempLoss) * (1 - inverterLoss) : 0.65; // Off-grid PR is typically lower due to battery cycle losses
 
-  // 3. Sizing PV
-  const hsp = s.climate.hsp || 4.5;
   const targetPowerW = ((monthlyKwh * 1000) / (hsp * 30 * PR));
   const oversizeTarget = 1 + (s.sizing.oversizingFactor || 0) / 100;
   const requiredPvPowerW = targetPowerW * oversizeTarget;
@@ -54,7 +68,34 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   const totalWeight = numModules * (s.equipment.moduleWeight || 0);
   const dcAcRatio = actualPvPowerW / (s.equipment.inverterPower || 1);
 
-  const specificYield = actualPvPowerW > 0 ? (annualEnergyKwh / (actualPvPowerW/1000)) : 0;
+  // Losses Waterfall Calculation
+  const energyNominalDc = (actualPvPowerW * hsp * 365) / 1000;
+  let currentEnergy = energyNominalDc;
+
+  const lossTemperatureKwh = currentEnergy * tempLoss;
+  currentEnergy -= lossTemperatureKwh;
+
+  const lossMismatchKwh = currentEnergy * (s.sizing.losses.mismatch / 100);
+  currentEnergy -= lossMismatchKwh;
+
+  const lossShadingKwh = currentEnergy * (s.sizing.losses.shading / 100);
+  currentEnergy -= lossShadingKwh;
+
+  const lossSoilingKwh = currentEnergy * (s.sizing.losses.soiling / 100);
+  currentEnergy -= lossSoilingKwh;
+
+  const lossCablingKwh = currentEnergy * (s.sizing.losses.cabling / 100);
+  currentEnergy -= lossCablingKwh;
+
+  const lossInverterKwh = currentEnergy * inverterLoss;
+  currentEnergy -= lossInverterKwh;
+
+  const lossDegradationKwh = currentEnergy * 0.007; // Year 1 Degradation
+  currentEnergy -= lossDegradationKwh;
+
+  const energyActualAc = isGrid ? currentEnergy : currentEnergy * 0.85; // battery extra losses if offgrid
+
+  const specificYield = actualPvPowerW > 0 ? (energyActualAc / (actualPvPowerW/1000)) : 0;
 
   // 4. Limites Térmicos (NBR 16690)
   const deltaTMin = s.climate.minTemp - 25; 
@@ -110,19 +151,36 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   const battBase = totalBatts * s.finance.batteryCostPerUnit;
   const capexTotal = hardwareBase + battBase;
   
-  const yearlySavingsStart = annualEnergyKwh * s.finance.energyTariff;
+  const yearlyTargetKwh = energyActualAc; // use actual computed AC generation
+  const yearlySavingsStart = Math.min(annualEnergyKwh, yearlyTargetKwh) * s.finance.energyTariff; // capped at consumption limit for simplified net metering
   
   // Project cash flows
   const cashFlows = [];
   const generatedEnergy = [];
+  const economicData = [];
   const years = s.finance.analysisYears;
   const degradation = 0.007; // 0.7% a.a.
   const inflation = s.finance.tariffInflation / 100;
   
+  let noSolarCum = 0;
+  let solarCum = -capexTotal;
+  
+  economicData.push({
+    year: 0,
+    noSolarCumulative: 0,
+    solarCumulative: solarCum
+  });
+
   for(let y=1; y<=years; y++) {
-    let energyY = annualEnergyKwh * Math.pow(1 - degradation, y);
+    let energyY = yearlyTargetKwh * Math.pow(1 - degradation, y);
     let tariffY = s.finance.energyTariff * Math.pow(1 + inflation, y);
-    let savings = energyY * tariffY;
+    
+    // No Solar: they pay the full bill with inflated tariff
+    let billNoSolar = annualEnergyKwh * tariffY;
+    noSolarCum -= billNoSolar;
+    
+    // Solar: they save 'savings' on the bill, but have 'costs'
+    let savings = Math.min(annualEnergyKwh, energyY) * tariffY; // bill 
     let costs = s.finance.opexYearly; // ignoring OPEX inflation for simplicity
     
     // Inverter exchange at year 12
@@ -130,6 +188,16 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
     
     cashFlows.push(savings - costs);
     generatedEnergy.push(energyY);
+    
+    // Their net flow for the year is effectively: - (billNoSolar - savings) - costs
+    // Which means: solarCum = solarCum - (billNoSolar - savings) - costs
+    solarCum += (savings - costs) - billNoSolar;
+    
+    economicData.push({
+      year: y,
+      noSolarCumulative: noSolarCum,
+      solarCumulative: solarCum
+    });
   }
 
   const vpl = calculateNPV(s.finance.discountRate/100, cashFlows, capexTotal);
@@ -223,12 +291,23 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
     totalWeight,
     dcAcRatio,
     
+    // Losses Breakdown
+    energyNominalDc,
+    lossShadingKwh,
+    lossSoilingKwh,
+    lossMismatchKwh,
+    lossTemperatureKwh,
+    lossCablingKwh,
+    lossInverterKwh,
+    lossDegradationKwh,
+    energyActualAc,
+
     vocMaxTemp, vmpMinTemp, maxModulesPerString, minModulesPerString, strings, modsPerString,
     iscArray, breakerCcA, breakerAcA, cableAcSect, cableDcSect, voltageDropDc, voltageDropAc, dpsCcV,
     
     reqAh, battSer, battPar, totalBatts, storageKwhBruto, storageKwhUtil,
     
-    capexTotal, lcoe, vpl, tir, payback, roi, yearlySavingsStart,
+    capexTotal, lcoe, vpl, tir, payback, roi, yearlySavingsStart, economicData,
     
     calculationMemory
   };

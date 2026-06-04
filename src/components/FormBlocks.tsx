@@ -4,14 +4,14 @@ import { AppState } from '../types';
 export const Block = ({ title, children }: any) => (
   <section className="mb-10">
     <span className="text-[10px] uppercase tracking-[0.1em] text-[#888] mb-4 block font-bold">{title}</span>
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-0 border-t border-l border-line bg-white">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-0 border-t border-l border-line bg-white dark:bg-[#1E1E1E]">
       {children}
     </div>
   </section>
 );
 
 export const Field = ({ label, children, unit }: any) => (
-  <div className="border-r border-b border-line p-4 flex flex-col justify-center relative focus-within:bg-[#FAFAF9] transition-colors">
+  <div className="border-r border-b border-line p-4 flex flex-col justify-center relative focus-within:bg-[#FAFAF9] dark:focus-within:bg-[#252525] transition-colors">
     <label className="text-[9px] uppercase tracking-widest text-[#666] mb-2 font-bold">{label}</label>
     <div className="flex items-center">
       {children}
@@ -36,13 +36,63 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
     update(sec, field, val);
   };
 
+  const [isLocating, setIsLocating] = React.useState(false);
+
+  const fetchCep = async () => {
+    const cep = state.project.cep?.replace(/\D/g, '');
+    if (cep && cep.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          update('project', 'street', data.logradouro);
+          update('project', 'neighborhood', data.bairro);
+          update('project', 'city', data.localidade);
+          update('project', 'state', data.uf);
+          // Try to geocode automatically with available data
+          geocodeAddress(`${data.logradouro}, ${data.localidade}, ${data.uf}, Brazil`);
+        }
+      } catch (e) {
+        console.error('Erro ao buscar CEP', e);
+      }
+    }
+  };
+
+  const geocodeAddress = async (addressQuery?: string) => {
+    setIsLocating(true);
+    const query = addressQuery || `${state.project.street || ''} ${state.project.number || ''}, ${state.project.neighborhood || ''}, ${state.project.city || ''}, ${state.project.state || ''}, Brazil`;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        update('project', 'lat', parseFloat(data[0].lat));
+        update('project', 'lng', parseFloat(data[0].lon));
+      }
+    } catch (e) {
+      console.error('Erro ao geocodificar', e);
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
   if (currentTab === 'cadastro') {
     return (
       <div className="animate-in fade-in duration-300">
         <Block title="Informações Gerais do Projeto">
           <Field label="Nome do Cliente"><Input type="text" value={state.project.clientName} onChange={updater('project','clientName')} /></Field>
-          <Field label="Cidade"><Input type="text" value={state.project.city} onChange={updater('project','city')} /></Field>
-          <Field label="Estado"><Input type="text" value={state.project.state} onChange={updater('project','state')} /></Field>
+          <Field label="CEP"><Input type="text" value={state.project.cep || ''} onChange={updater('project','cep')} onBlur={fetchCep} placeholder="00000-000" /></Field>
+          <Field label="Rua / Logradouro"><Input type="text" value={state.project.street || ''} onChange={updater('project','street')} onBlur={() => geocodeAddress()} /></Field>
+          <Field label="Número"><Input type="text" value={state.project.number || ''} onChange={updater('project','number')} onBlur={() => geocodeAddress()} /></Field>
+          <Field label="Bairro"><Input type="text" value={state.project.neighborhood || ''} onChange={updater('project','neighborhood')} onBlur={() => geocodeAddress()} /></Field>
+          <Field label="Cidade"><Input type="text" value={state.project.city} onChange={updater('project','city')} onBlur={() => geocodeAddress()} /></Field>
+          <Field label="Estado"><Input type="text" value={state.project.state} onChange={updater('project','state')} onBlur={() => geocodeAddress()} /></Field>
+          <div className="border-r border-b border-line p-4 flex flex-col justify-center relative focus-within:bg-[#FAFAF9] dark:focus-within:bg-[#252525] transition-colors col-span-1 md:col-span-2 xl:col-span-3">
+             <div className="flex items-center gap-4">
+                <button onClick={() => geocodeAddress()} disabled={isLocating} className="bg-solar-blue text-white px-4 py-2 text-xs font-bold rounded cursor-pointer hover:bg-blue-600 disabled:opacity-50">
+                  {isLocating ? 'Buscando Coordenadas...' : 'Atualizar Coordenadas via Endereço'}
+                </button>
+             </div>
+          </div>
           <Field label="Latitude"><Input type="number" step="0.0001" value={state.project.lat} onChange={updater('project','lat')} /></Field>
           <Field label="Longitude"><Input type="number" step="0.0001" value={state.project.lng} onChange={updater('project','lng')} /></Field>
           <Field label="Altitude" unit="m"><Input type="number" value={state.project.altitude} onChange={updater('project','altitude')} /></Field>
@@ -88,10 +138,88 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
   if (currentTab === 'consumo') {
     return (
       <div className="animate-in fade-in duration-300">
-        <Block title="Análise de Faturamento de Carga">
-          <Field label="Consumo Mensal Médio" unit="kWh/mês"><Input type="number" value={state.consumption.monthlyAvgKwh} onChange={updater('consumption','monthlyAvgKwh')} /></Field>
-          <Field label="Consumo Diário Base" unit="kWh/dia"><Input type="number" step="0.1" value={state.consumption.dailyKwh} onChange={updater('consumption','dailyKwh')} /></Field>
+        <Block title="Metodologia de Consumo">
+          <Field label="Método de Dimensionamento">
+             <Select value={state.consumption.method} onChange={updater('consumption','method')}>
+               <option value="manual">Entrada Manual (Fatura)</option>
+               <option value="loadProfile">Levantamento de Cargas (Quadro)</option>
+             </Select>
+          </Field>
         </Block>
+        
+        {state.consumption.method === 'manual' ? (
+          <Block title="Análise de Faturamento Manual">
+            <Field label="Consumo Mensal Médio" unit="kWh/mês"><Input type="number" value={state.consumption.monthlyAvgKwh} onChange={updater('consumption','monthlyAvgKwh')} /></Field>
+            <Field label="Consumo Diário Base" unit="kWh/dia"><Input type="number" step="0.1" value={state.consumption.dailyKwh} onChange={updater('consumption','dailyKwh')} /></Field>
+          </Block>
+        ) : (
+          <section className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] uppercase tracking-[0.1em] text-[#888] font-bold">Levantamento de Carga</span>
+              <button 
+                onClick={() => {
+                  const newLoad = { id: Date.now().toString(), name: 'Nova Carga', qty: 1, powerW: 100, hoursPerDay: 1, daysPerMonth: 30 };
+                  update('consumption', 'loads', [...(state.consumption.loads || []), newLoad]);
+                }}
+                className="bg-accent text-white px-3 py-1 text-xs font-bold rounded cursor-pointer hover:bg-[#B34500]"
+              >
+                + Adicionar Carga
+              </button>
+            </div>
+            
+            <div className="border border-line bg-white dark:bg-[#1E1E1E] overflow-x-auto">
+              <table className="w-full text-xs font-mono text-left">
+                <thead className="bg-[#FAFAF9] dark:bg-[#2A2A2A] text-[#666] dark:text-[#888] border-b border-line uppercase tracking-wider">
+                  <tr>
+                    <th className="p-3 font-normal">Equipamento</th>
+                    <th className="p-3 font-normal w-24">Quant.</th>
+                    <th className="p-3 font-normal w-32">Potência (W)</th>
+                    <th className="p-3 font-normal w-28">Horas/Dia</th>
+                    <th className="p-3 font-normal w-28">Dias/Mês</th>
+                    <th className="p-3 font-normal w-32">Energia (kWh/mês)</th>
+                    <th className="p-3 font-normal w-12 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(state.consumption.loads || []).map((load: any, index: number) => {
+                    const kwhMonth = (load.qty * load.powerW * load.hoursPerDay * load.daysPerMonth) / 1000;
+                    
+                    const updateLoad = (field: string, val: any) => {
+                       const newLoads = [...state.consumption.loads];
+                       newLoads[index] = { ...load, [field]: val };
+                       update('consumption', 'loads', newLoads);
+                    };
+
+                    return (
+                      <tr key={load.id} className="border-b border-line last:border-0 hover:bg-[#F9F9F7] dark:hover:bg-[#2A2A2A]">
+                        <td className="p-2"><Input value={load.name} onChange={(e: any) => updateLoad('name', e.target.value)} /></td>
+                        <td className="p-2"><Input type="number" min="1" value={load.qty} onChange={(e: any) => updateLoad('qty', Number(e.target.value))} /></td>
+                        <td className="p-2"><Input type="number" step="1" value={load.powerW} onChange={(e: any) => updateLoad('powerW', Number(e.target.value))} /></td>
+                        <td className="p-2"><Input type="number" step="0.1" value={load.hoursPerDay} onChange={(e: any) => updateLoad('hoursPerDay', Number(e.target.value))} /></td>
+                        <td className="p-2"><Input type="number" min="1" max="31" value={load.daysPerMonth} onChange={(e: any) => updateLoad('daysPerMonth', Number(e.target.value))} /></td>
+                        <td className="p-3 text-[#27AE60] font-bold">{kwhMonth.toFixed(1)}</td>
+                        <td className="p-2 text-center">
+                           <button onClick={() => {
+                              const newLoads = state.consumption.loads.filter((_, i) => i !== index);
+                              update('consumption', 'loads', newLoads);
+                           }} className="text-[#E74C3C] hover:text-[#C0392B] pb-1 px-2 text-lg">×</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {(state.consumption.loads || []).length === 0 && (
+                    <tr><td colSpan={7} className="p-6 text-center text-[#888]">Nenhuma carga cadastrada. Adicione equipamentos.</td></tr>
+                  )}
+                </tbody>
+              </table>
+              <div className="p-4 border-t border-line bg-[#FAFAF9] dark:bg-[#1A1A1A] text-right font-bold text-sm">
+                Total Estimado: <span className="text-solar-blue ml-2">
+                  {((state.consumption.loads || []).reduce((acc: number, load: any) => acc + ((load.qty * load.powerW * load.hoursPerDay * load.daysPerMonth) / 1000), 0)).toFixed(1)} kWh/mês
+                </span>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
     );
   }
@@ -175,6 +303,46 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
           <Field label="Mismatch (Diodos/Degrad.)" unit="%"><Input type="number" step="0.1" value={state.sizing.losses.mismatch} onChange={(e: any) => update('sizing', 'losses', {...state.sizing.losses, mismatch: Number(e.target.value)})} /></Field>
           <Field label="Perdas Resistivas Cabos" unit="%"><Input type="number" step="0.1" value={state.sizing.losses.cabling} onChange={(e: any) => update('sizing', 'losses', {...state.sizing.losses, cabling: Number(e.target.value)})} /></Field>
         </Block>
+        <Block title="Redundância e Backup de Dados do Projeto">
+          <Field label="Backup Automático">
+            <Select value={state.backup.enabled ? 'true' : 'false'} onChange={(e: any) => update('backup', 'enabled', e.target.value === 'true')}>
+              <option value="false">Desativado</option>
+              <option value="true">Ativado</option>
+            </Select>
+          </Field>
+          <Field label="Cronograma de Salvos">
+            <Select value={state.backup.frequency} onChange={(e: any) => update('backup', 'frequency', e.target.value)} disabled={!state.backup.enabled}>
+              <option value="manual">Apenas Manual</option>
+              <option value="hourly">A cada hora</option>
+              <option value="daily">Diário</option>
+            </Select>
+          </Field>
+          <Field label="Destino da Configuração">
+            <Select value={state.backup.method} onChange={(e: any) => update('backup', 'method', e.target.value)} disabled={!state.backup.enabled}>
+              <option value="local">Base de Dados Local</option>
+              <option value="download">Download (JSON)</option>
+            </Select>
+          </Field>
+        </Block>
+        <div className="flex gap-4">
+          <button 
+            onClick={() => {
+              if (state.backup.method === 'download') {
+                const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+                const anchor = document.createElement('a');
+                anchor.setAttribute("href", data);
+                anchor.setAttribute("download", "pvstudio_backup.json");
+                anchor.click();
+              } else {
+                localStorage.setItem('pvstudio_backup', JSON.stringify(state));
+                alert('Backup salvo localmente com sucesso!');
+              }
+            }}
+            className="bg-ink hover:bg-[#333] text-white px-6 py-2 rounded text-xs font-mono tracking-widest uppercase transition-colors"
+          >
+            Executar Backup Manual Agora
+          </button>
+        </div>
       </div>
     );
   }

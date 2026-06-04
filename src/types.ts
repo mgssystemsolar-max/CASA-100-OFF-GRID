@@ -1,6 +1,19 @@
+export interface LoadItem {
+  id: string;
+  name: string;
+  qty: number;
+  powerW: number;
+  hoursPerDay: number;
+  daysPerMonth: number;
+}
+
 export interface AppState {
   project: {
     clientName: string;
+    cep?: string;
+    street?: string;
+    number?: string;
+    neighborhood?: string;
     city: string;
     state: string;
     lat: number;
@@ -19,8 +32,10 @@ export interface AppState {
     maxTemp: number;
   };
   consumption: {
+    method: 'manual' | 'loadProfile';
     monthlyAvgKwh: number;
     dailyKwh: number;
+    loads: LoadItem[];
   };
   equipment: {
     modulePower: number;
@@ -68,6 +83,11 @@ export interface AppState {
     discountRate: number;
     analysisYears: number;
   };
+  backup: {
+    enabled: boolean;
+    frequency: 'manual' | 'hourly' | 'daily';
+    method: 'local' | 'download';
+  };
 }
 
 export interface CalculationResults {
@@ -85,6 +105,17 @@ export interface CalculationResults {
   dcAcRatio: number;
   performanceRatio: number;
   specificYield: number;
+
+  // Losses Breakdown
+  energyNominalDc: number; // STC energy before losses
+  lossShadingKwh: number;
+  lossSoilingKwh: number;
+  lossMismatchKwh: number;
+  lossTemperatureKwh: number;
+  lossCablingKwh: number;
+  lossInverterKwh: number;
+  lossDegradationKwh: number;
+  energyActualAc: number; // Final AC energy
 
   // Strings (Inverter limits)
   vocMaxTemp: number;
@@ -120,6 +151,7 @@ export interface CalculationResults {
   payback: number;
   roi: number;
   yearlySavingsStart: number;
+  economicData: Array<{ year: number; noSolarCumulative: number; solarCumulative: number; }>;
 
   // Calculation Memory
   calculationMemory: Array<{

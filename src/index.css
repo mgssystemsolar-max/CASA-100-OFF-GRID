@@ -1,15 +1,32 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-bg: #F5F4F0;
-  --color-ink: #1A1A1A;
-  --color-line: #D1D1CB;
-  --color-accent: #D35400;
-  --color-solar-blue: #2980B9;
+  --color-bg: var(--color-bg-val);
+  --color-ink: var(--color-ink-val);
+  --color-line: var(--color-line-val);
+  --color-accent: var(--color-accent-val);
+  --color-solar-blue: var(--color-solar-blue-val);
   
   --font-mono: "Courier New", Courier, monospace;
   --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-serif: "Georgia", serif;
+}
+
+:root {
+  --color-bg-val: #F5F4F0;
+  --color-ink-val: #1A1A1A;
+  --color-line-val: #D1D1CB;
+  --color-accent-val: #D35400;
+  --color-solar-blue-val: #2980B9;
+}
+
+.dark {
+  --color-bg-val: #121212;
+  --color-ink-val: #E5E5E5;
+  --color-line-val: #333333;
+  --color-accent-val: #E67E22;
+  --color-solar-blue-val: #3498DB;
 }
 
 @media print {
