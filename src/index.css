@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #F5F4F0;
+  --color-ink: #1A1A1A;
+  --color-line: #D1D1CB;
+  --color-accent: #D35400;
+  --color-solar-blue: #2980B9;
+  
+  --font-mono: "Courier New", Courier, monospace;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-serif: "Georgia", serif;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 20mm 15mm;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background-color: white !important;
+  }
+
+  .print-break-after {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .print-break-before {
+    page-break-before: always;
+    break-before: page;
+  }
+}

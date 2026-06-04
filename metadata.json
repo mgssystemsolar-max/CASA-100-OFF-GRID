@@ -1,0 +1,6 @@
+{
+  "name": "Manual MgS System Solar",
+  "description": "Manual Completo de Dimensionamento Solar Off-Grid, On-Grid e Híbrido por MgS System Solar.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
