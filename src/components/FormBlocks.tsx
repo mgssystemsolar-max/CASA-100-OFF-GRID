@@ -30,6 +30,15 @@ export const Select = (props: any) => (
   </select>
 );
 
+const MODULE_DATABASE = [
+  { id: 'custom', name: 'Personalizado (Entrada Manual)' },
+  { id: 'jinko_550', name: 'Jinko Solar Tiger Pro 545-555W', power: 550, voc: 49.9, vmp: 40.9, isc: 14.01, imp: 13.45, coeffVoc: -0.25, coeffPmax: -0.35, eff: 21.33, area: 2.58, weight: 28.9 },
+  { id: 'longi_545', name: 'LONGI Hi-MO5 545W', power: 545, voc: 49.65, vmp: 41.8, isc: 13.92, imp: 13.04, coeffVoc: -0.26, coeffPmax: -0.34, eff: 21.1, area: 2.58, weight: 27.5 },
+  { id: 'canadian_600', name: 'Canadian Solar HiKu7 600W', power: 600, voc: 41.3, vmp: 34.9, isc: 18.52, imp: 17.2, coeffVoc: -0.26, coeffPmax: -0.34, eff: 21.2, area: 2.83, weight: 31.0 },
+  { id: 'trina_550', name: 'Trina Vertex 550W', power: 550, voc: 37.9, vmp: 31.6, isc: 18.52, imp: 17.4, coeffVoc: -0.25, coeffPmax: -0.34, eff: 21.0, area: 2.62, weight: 28.6 },
+  { id: 'osda_550', name: 'OSDA Solar 550W', power: 550, voc: 50.0, vmp: 41.8, isc: 13.99, imp: 13.16, coeffVoc: -0.27, coeffPmax: -0.35, eff: 21.3, area: 2.58, weight: 28.6 },
+];
+
 export function ModularForms({ state, update, currentTab }: { state: AppState, update: Function, currentTab: string }) {
   const updater = (sec: keyof AppState, field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const val = e.target.type === 'number' ? Number(e.target.value) : e.target.value;
@@ -37,6 +46,27 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
   };
 
   const [isLocating, setIsLocating] = React.useState(false);
+  const [selectedModuleId, setSelectedModuleId] = React.useState('custom');
+
+  const onModuleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    setSelectedModuleId(id);
+    if (id !== 'custom') {
+      const sp = MODULE_DATABASE.find(m => m.id === id);
+      if (sp) {
+        update('equipment', 'modulePower', sp.power);
+        update('equipment', 'moduleVoc', sp.voc);
+        update('equipment', 'moduleVmp', sp.vmp);
+        update('equipment', 'moduleIsc', sp.isc);
+        update('equipment', 'moduleImp', sp.imp);
+        update('equipment', 'moduleTempCoeffVoc', sp.coeffVoc);
+        update('equipment', 'moduleTempCoeffPmax', sp.coeffPmax);
+        update('equipment', 'moduleEfficiency', sp.eff);
+        update('equipment', 'moduleArea', sp.area);
+        update('equipment', 'moduleWeight', sp.weight);
+      }
+    }
+  };
 
   const fetchCep = async () => {
     const cep = state.project.cep?.replace(/\D/g, '');
@@ -228,16 +258,24 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
     return (
       <div className="animate-in fade-in duration-300">
         <Block title="Módulos Fotovoltaicos (Specs PAN)">
-          <Field label="Potência Pmax" unit="W"><Input type="number" value={state.equipment.modulePower} onChange={updater('equipment','modulePower')} /></Field>
-          <Field label="Voc" unit="V"><Input type="number" step="0.01" value={state.equipment.moduleVoc} onChange={updater('equipment','moduleVoc')} /></Field>
-          <Field label="Vmp" unit="V"><Input type="number" step="0.01" value={state.equipment.moduleVmp} onChange={updater('equipment','moduleVmp')} /></Field>
-          <Field label="Isc" unit="A"><Input type="number" step="0.01" value={state.equipment.moduleIsc} onChange={updater('equipment','moduleIsc')} /></Field>
-          <Field label="Imp" unit="A"><Input type="number" step="0.01" value={state.equipment.moduleImp} onChange={updater('equipment','moduleImp')} /></Field>
-          <Field label="Coef. Temp. Voc" unit="%/°C"><Input type="number" step="0.001" value={state.equipment.moduleTempCoeffVoc} onChange={updater('equipment','moduleTempCoeffVoc')} /></Field>
-          <Field label="Coef. Temp. Pmax" unit="%/°C"><Input type="number" step="0.001" value={state.equipment.moduleTempCoeffPmax} onChange={updater('equipment','moduleTempCoeffPmax')} /></Field>
-          <Field label="Eficiência Módulo" unit="%"><Input type="number" step="0.1" value={state.equipment.moduleEfficiency} onChange={updater('equipment','moduleEfficiency')} /></Field>
-          <Field label="Área do Módulo" unit="m²"><Input type="number" step="0.01" value={state.equipment.moduleArea} onChange={updater('equipment','moduleArea')} /></Field>
-          <Field label="Peso do Módulo" unit="kg"><Input type="number" step="0.1" value={state.equipment.moduleWeight} onChange={updater('equipment','moduleWeight')} /></Field>
+          <div className="mb-4 p-4 border-b border-line bg-[#FAFAF9] dark:bg-[#1A1A1A]">
+            <label className="block text-[10px] uppercase font-bold text-[#666] tracking-widest mb-2">Base de Dados de Módulos</label>
+            <Select value={selectedModuleId} onChange={onModuleSelect}>
+              {MODULE_DATABASE.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </Select>
+          </div>
+          <Field label="Potência Pmax" unit="W"><Input type="number" value={state.equipment.modulePower} onChange={updater('equipment','modulePower')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Voc" unit="V"><Input type="number" step="0.01" value={state.equipment.moduleVoc} onChange={updater('equipment','moduleVoc')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Vmp" unit="V"><Input type="number" step="0.01" value={state.equipment.moduleVmp} onChange={updater('equipment','moduleVmp')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Isc" unit="A"><Input type="number" step="0.01" value={state.equipment.moduleIsc} onChange={updater('equipment','moduleIsc')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Imp" unit="A"><Input type="number" step="0.01" value={state.equipment.moduleImp} onChange={updater('equipment','moduleImp')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Coef. Temp. Voc" unit="%/°C"><Input type="number" step="0.001" value={state.equipment.moduleTempCoeffVoc} onChange={updater('equipment','moduleTempCoeffVoc')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Coef. Temp. Pmax" unit="%/°C"><Input type="number" step="0.001" value={state.equipment.moduleTempCoeffPmax} onChange={updater('equipment','moduleTempCoeffPmax')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Eficiência Módulo" unit="%"><Input type="number" step="0.1" value={state.equipment.moduleEfficiency} onChange={updater('equipment','moduleEfficiency')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Área do Módulo" unit="m²"><Input type="number" step="0.01" value={state.equipment.moduleArea} onChange={updater('equipment','moduleArea')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Peso do Módulo" unit="kg"><Input type="number" step="0.1" value={state.equipment.moduleWeight} onChange={updater('equipment','moduleWeight')} disabled={selectedModuleId !== 'custom'} /></Field>
         </Block>
         <Block title="Inversor de Frequência (OND)">
           <Field label="Potência Nominal CA" unit="W"><Input type="number" value={state.equipment.inverterPower} onChange={updater('equipment','inverterPower')} /></Field>
