@@ -25,10 +25,10 @@ const defaultState: AppState = {
   equipment: {
     modulePower: 550, moduleVoc: 49.8, moduleVmp: 41.5, moduleIsc: 14.1, moduleImp: 13.2, moduleTempCoeffVoc: -0.27, moduleTempCoeffPmax: -0.34, moduleEfficiency: 21.3, moduleArea: 2.58, moduleWeight: 28.6,
     inverterPower: 8000, inverterMaxDcV: 1000, inverterMpptMinV: 160, inverterMpptMaxV: 850, inverterMaxI: 22, inverterEfficiency: 98.3,
-    batteryTech: 'LiFePO4', batteryVoltage: 48, batteryCapacity: 100, batteryDod: 80, batteryCycles: 6000
+    batteryTech: 'LiFePO4', batteryVoltage: 48, batteryCapacity: 100, batteryDod: 80, batteryCycles: 6000, batteryMaxDischargeA: 50
   },
   sizing: {
-    systemType: 'Híbrido', autonomyDays: 1, cableDistanceDc: 20, cableDistanceAc: 10, oversizingFactor: 10, maxDcAcRatio: 1.20,
+    systemType: 'Híbrido', autonomyDays: 1, simultaneityFactor: 0.8, cableDistanceDc: 20, cableDistanceAc: 10, oversizingFactor: 10, maxDcAcRatio: 1.20,
     losses: { shading: 2.0, soiling: 1.5, mismatch: 1.0, cabling: 1.5 }
   },
   finance: {

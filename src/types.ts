@@ -3,8 +3,10 @@ export interface LoadItem {
   name: string;
   qty: number;
   powerW: number;
+  powerFactor?: number;
   hoursPerDay: number;
   daysPerMonth: number;
+  isPriority?: boolean; // New field for hybrid systems
 }
 
 export interface AppState {
@@ -59,10 +61,12 @@ export interface AppState {
     batteryCapacity: number;
     batteryDod: number;
     batteryCycles: number;
+    batteryMaxDischargeA?: number; // Maximum discharge current per battery
   };
   sizing: {
     systemType: 'On-Grid' | 'Off-Grid' | 'Híbrido';
     autonomyDays: number;
+    simultaneityFactor?: number; // Coeficiente de simultaneidade (0.0 to 1.0)
     oversizingFactor: number;
     maxDcAcRatio: number;
     losses: {

@@ -27,19 +27,49 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   // 1. Balanço Energético
   let dailyKwh = 0;
   let monthlyKwh = 0;
+  
+  let peakPowerW = 0;
+  let priorityPeakPowerW = 0;
+  let peakPowerVA = 0;
+  let priorityPeakPowerVA = 0;
+  let priorityDailyKwh = 0;
+  let hasPriorityLoads = false;
 
   if (s.consumption.method === 'loadProfile' && s.consumption.loads) {
     s.consumption.loads.forEach(load => {
       // Wh/day
       const whDay = load.qty * load.powerW * load.hoursPerDay;
       const whMonth = whDay * load.daysPerMonth;
+      
+      const loadPower = load.qty * load.powerW;
+      const fp = load.powerFactor && load.powerFactor > 0 ? load.powerFactor : 1;
+      const loadVA = loadPower / fp;
+      
+      peakPowerW += loadPower;
+      peakPowerVA += loadVA;
+      
+      if (load.isPriority) {
+          hasPriorityLoads = true;
+          priorityPeakPowerW += loadPower;
+          priorityPeakPowerVA += loadVA;
+          priorityDailyKwh += whDay / 1000;
+      }
+      
       dailyKwh += whDay / 1000;
       monthlyKwh += whMonth / 1000;
     });
   } else {
     dailyKwh = s.consumption.dailyKwh > 0 ? s.consumption.dailyKwh : (s.consumption.monthlyAvgKwh / 30);
     monthlyKwh = s.consumption.monthlyAvgKwh > 0 ? s.consumption.monthlyAvgKwh : (dailyKwh * 30);
+    peakPowerW = (dailyKwh * 1000) / 4; // Generic assumption
+    peakPowerVA = peakPowerW / 0.92; // Generic FP assumption for global
   }
+  
+  // Apply simultaneity
+  let effectivePeakPowerW = peakPowerW * (s.sizing.simultaneityFactor || 0.8);
+  let effectivePriorityPeakPowerW = priorityPeakPowerW * (s.sizing.simultaneityFactor || 0.8);
+  let effectivePeakPowerVA = peakPowerVA * (s.sizing.simultaneityFactor || 0.8);
+  let effectivePriorityPeakPowerVA = priorityPeakPowerVA * (s.sizing.simultaneityFactor || 0.8);
   
   const annualEnergyKwh = monthlyKwh * 12;
 
@@ -132,7 +162,11 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   // 6. Armazenamento (Baterias)
   let reqAh = 0, battSer = 0, battPar = 0, totalBatts = 0, storageKwhBruto = 0, storageKwhUtil = 0;
   if (!isGrid) {
-    const requiredWh = dailyKwh * 1000 * s.sizing.autonomyDays;
+    const isHybrid = s.sizing.systemType === 'Híbrido';
+    const targetDailyWh = (isHybrid && hasPriorityLoads) ? (priorityDailyKwh * 1000) : (dailyKwh * 1000);
+    const targetPeakPowerW = (isHybrid && hasPriorityLoads) ? effectivePriorityPeakPowerW : effectivePeakPowerW;
+    
+    let requiredWh = targetDailyWh * s.sizing.autonomyDays;
     const sysVoltage = s.equipment.batteryVoltage || 48; // Assume 48V for large banks if not specified otherwise in tech
     
     // Using 90% generic efficiency for the bank
@@ -142,7 +176,18 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
     battPar = Math.ceil(reqAh / (s.equipment.batteryCapacity || 100));
     totalBatts = battSer * battPar;
     
-    storageKwhBruto = (totalBatts * s.equipment.batteryVoltage * s.equipment.batteryCapacity) / 1000;
+    // 5. Respeitar o limite de potência da bateria
+    const maxDischargeA = s.equipment.batteryMaxDischargeA || 50;
+    const batteryBankMaxPowerW = battPar * maxDischargeA * sysVoltage; 
+
+    // If battery power is not enough for target peak, increase parallel branches
+    if (batteryBankMaxPowerW < targetPeakPowerW) {
+        let additionalBattPar = Math.ceil((targetPeakPowerW - batteryBankMaxPowerW) / (maxDischargeA * sysVoltage));
+        battPar += additionalBattPar;
+        totalBatts = battSer * battPar;
+    }
+
+    storageKwhBruto = (totalBatts * (s.equipment.batteryVoltage || 12) * (s.equipment.batteryCapacity || 100)) / 1000;
     storageKwhUtil = storageKwhBruto * (s.equipment.batteryDod/100);
   }
 
@@ -228,10 +273,24 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
     {
       step: 'Etapa 1',
       description: 'Energia Diária Necessária',
-      formula: 'Ediaria = ConsumoMensal ÷ 30',
+      formula: 'Ediaria = Consumo Mensal ÷ 30',
       values: `Ediaria = ${monthlyKwh.toFixed(1)} ÷ 30`,
       result: `${dailyKwh.toFixed(1)} kWh/dia`
     },
+    {
+       step: 'Etapa 1.1',
+       description: 'Potência Aparente de Pico Simultânea',
+       formula: 'S_pico (VA) = Soma(P_carga ÷ FP) × F. de Simult.',
+       values: `S_pico = ${((hasPriorityLoads && s.sizing.systemType === 'Híbrido' ? priorityPeakPowerVA : peakPowerVA)/1000).toFixed(2)}kVA × ${(s.sizing.simultaneityFactor || 0.8)}`,
+       result: `${((hasPriorityLoads && s.sizing.systemType === 'Híbrido' ? effectivePriorityPeakPowerVA : effectivePeakPowerVA)/1000).toFixed(2)} kVA`
+    },
+    ...(!isGrid ? [{
+       step: 'Etapa 1.2',
+       description: 'Verificação Inversor vs Cargas Apparentes',
+       formula: 'Inversor (VA) >= S_pico_efetivo (VA)',
+       values: `Inv: ${s.equipment.inverterPower}VA vs Peak: ${((hasPriorityLoads && s.sizing.systemType === 'Híbrido' ? effectivePriorityPeakPowerVA : effectivePeakPowerVA)).toFixed(0)}VA`,
+       result: s.equipment.inverterPower >= ((hasPriorityLoads && s.sizing.systemType === 'Híbrido' ? effectivePriorityPeakPowerVA : effectivePeakPowerVA)) ? 'OK' : 'ALERTA!'
+    }] : []),
     {
       step: 'Etapa 2',
       description: 'Potência FV Mínima Nominal',

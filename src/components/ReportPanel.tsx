@@ -212,6 +212,16 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
   const customLossColor = "#E74C3C";
   const customYieldColor = "#27AE60";
 
+  const inverterComparisonData = [
+    { load: 5, selected: state.equipment.inverterEfficiency - 5, generic: 90, premium: 95 },
+    { load: 10, selected: state.equipment.inverterEfficiency - 3, generic: 92, premium: 96.5 },
+    { load: 20, selected: state.equipment.inverterEfficiency - 1.5, generic: 94, premium: 98 },
+    { load: 30, selected: state.equipment.inverterEfficiency - 0.5, generic: 95.5, premium: 98.7 },
+    { load: 50, selected: state.equipment.inverterEfficiency, generic: 96, premium: 99 },
+    { load: 75, selected: state.equipment.inverterEfficiency - 0.2, generic: 95.8, premium: 98.8 },
+    { load: 100, selected: state.equipment.inverterEfficiency - 0.5, generic: 95, premium: 98.5 },
+  ];
+
   return (
     <div className="flex flex-col h-full bg-[#F9F9F7] dark:bg-[#121212] print:bg-white print:w-full print:absolute print:inset-0 print:p-8">
       
@@ -353,9 +363,37 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
           </div>
         )}
 
+        {/* COMPARATIVO DE INVERSORES */}
+        <div className="print:break-inside-avoid mt-8">
+           <h3 className="text-[10px] bg-[#8E44AD] text-white inline-block px-2 py-1 font-mono uppercase mb-2">5. Comparativo de Eficiência (Inversores)</h3>
+           <div className="bg-white dark:bg-[#1E1E1E] border border-line p-4">
+             <div className="text-xs font-mono text-[#666] mb-4 uppercase tracking-widest text-center">
+               Curva de Rendimento x Potência de Entrada (Carga %)
+             </div>
+             <div className="w-full h-[250px]">
+               <ResponsiveContainer width="100%" height="100%">
+                 <RechartsLineChart data={inverterComparisonData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
+                   <XAxis dataKey="load" fontSize={10} axisLine={false} tickLine={false} tickFormatter={(val) => `${val}%`} label={{ value: 'Potência de Entrada / Carga (%)', position: 'insideBottom', offset: -10, fontSize: 10 }} />
+                   <YAxis domain={['dataMin - 2', 100]} fontSize={10} axisLine={false} tickLine={false} tickFormatter={(val) => `${val}%`} />
+                   <Tooltip 
+                     formatter={(value: number) => `${value.toFixed(1)}%`}
+                     labelFormatter={(label) => `Carga: ${label}%`}
+                     contentStyle={{ fontSize: '12px', fontFamily: 'monospace' }} 
+                   />
+                   <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px', fontFamily: 'sans-serif' }} />
+                   <Line type="step" dataKey="generic" name="Inversor String Básico" stroke="#95A5A6" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                   <Line type="monotone" dataKey="selected" name="Modelo Selecionado" stroke="#2980B9" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                   <Line type="monotone" dataKey="premium" name="Microinversor / Premium" stroke="#F39C12" strokeWidth={2} dot={false} />
+                 </RechartsLineChart>
+               </ResponsiveContainer>
+             </div>
+           </div>
+        </div>
+
         {/* ECONOMIC ANALYSIS */}
         <div className="print:break-inside-avoid mt-8">
-           <h3 className="text-[10px] bg-[#2980B9] text-white inline-block px-2 py-1 font-mono uppercase mb-2">5. Análise Econômica de Longo Prazo</h3>
+           <h3 className="text-[10px] bg-[#2980B9] text-white inline-block px-2 py-1 font-mono uppercase mb-2">6. Análise Econômica de Longo Prazo</h3>
            <div className="bg-white dark:bg-[#1E1E1E] border border-line p-4">
              <div className="text-xs font-mono text-[#666] mb-4 uppercase tracking-widest text-center">
                Fluxo de Caixa Acumulado ao longo de {state.finance.analysisYears} anos (Cenário "Sem Solar" vs "Com Solar")
@@ -382,7 +420,7 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
 
         {/* MEMÓRIA DE CÁLCULO */}
         <div className="print:break-before-page mt-12 mb-12">
-          <h3 className="text-[10px] bg-ink text-white inline-block px-2 py-1 font-mono uppercase mb-4">6. Memória de Cálculo (Engenharia)</h3>
+          <h3 className="text-[10px] bg-ink text-white inline-block px-2 py-1 font-mono uppercase mb-4">7. Memória de Cálculo (Engenharia)</h3>
           <div className="space-y-4">
             {results.calculationMemory.map((mem, idx) => (
               <div key={idx} className="bg-white dark:bg-[#1E1E1E] border border-line p-4">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppState } from '../types';
+import { HelpCircle } from 'lucide-react';
 
 export const Block = ({ title, children }: any) => (
   <section className="mb-10">
@@ -10,10 +11,21 @@ export const Block = ({ title, children }: any) => (
   </section>
 );
 
-export const Field = ({ label, children, unit }: any) => (
-  <div className="border-r border-b border-line p-4 flex flex-col justify-center relative focus-within:bg-[#FAFAF9] dark:focus-within:bg-[#252525] transition-colors">
-    <label className="text-[9px] uppercase tracking-widest text-[#666] mb-2 font-bold">{label}</label>
-    <div className="flex items-center">
+export const Field = ({ label, children, unit, hint }: any) => (
+  <div className="border-r border-b border-line p-4 flex flex-col justify-center relative focus-within:bg-[#FAFAF9] dark:focus-within:bg-[#252525] transition-colors group">
+    <label className="text-[9px] uppercase tracking-widest text-[#666] mb-2 font-bold flex items-center gap-1">
+      {label}
+      {hint && (
+        <div className="relative inline-flex items-center group/tooltip">
+          <HelpCircle className="w-3 h-3 text-[#999] hover:text-[#333] dark:hover:text-[#CCC] transition-colors cursor-help" />
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity bg-ink text-white text-[10px] p-2 rounded w-48 text-center z-50 normal-case font-normal shadow-lg">
+            {hint}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-[4px] border-transparent border-t-ink"></div>
+          </div>
+        </div>
+      )}
+    </label>
+    <div className="flex items-center z-0 relative">
       {children}
       {unit && <span className="ml-2 text-xs font-mono text-[#888]">{unit}</span>}
     </div>
@@ -202,8 +214,10 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
                 <thead className="bg-[#FAFAF9] dark:bg-[#2A2A2A] text-[#666] dark:text-[#888] border-b border-line uppercase tracking-wider">
                   <tr>
                     <th className="p-3 font-normal">Equipamento</th>
+                    <th className="p-3 font-normal w-16 text-center" title="Prioridade (p/ Híbrido/Off-Grid)">Prio.</th>
                     <th className="p-3 font-normal w-24">Quant.</th>
                     <th className="p-3 font-normal w-32">Potência (W)</th>
+                    <th className="p-3 font-normal w-24">FP</th>
                     <th className="p-3 font-normal w-28">Horas/Dia</th>
                     <th className="p-3 font-normal w-28">Dias/Mês</th>
                     <th className="p-3 font-normal w-32">Energia (kWh/mês)</th>
@@ -223,8 +237,10 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
                     return (
                       <tr key={load.id} className="border-b border-line last:border-0 hover:bg-[#F9F9F7] dark:hover:bg-[#2A2A2A]">
                         <td className="p-2"><Input value={load.name} onChange={(e: any) => updateLoad('name', e.target.value)} /></td>
+                        <td className="p-2 text-center"><input type="checkbox" checked={load.isPriority || false} onChange={(e: any) => updateLoad('isPriority', e.target.checked)} className="cursor-pointer" /></td>
                         <td className="p-2"><Input type="number" min="1" value={load.qty} onChange={(e: any) => updateLoad('qty', Number(e.target.value))} /></td>
                         <td className="p-2"><Input type="number" step="1" value={load.powerW} onChange={(e: any) => updateLoad('powerW', Number(e.target.value))} /></td>
+                        <td className="p-2"><Input type="number" step="0.05" min="0.1" max="1" value={load.powerFactor || 1} onChange={(e: any) => updateLoad('powerFactor', Number(e.target.value))} /></td>
                         <td className="p-2"><Input type="number" step="0.1" value={load.hoursPerDay} onChange={(e: any) => updateLoad('hoursPerDay', Number(e.target.value))} /></td>
                         <td className="p-2"><Input type="number" min="1" max="31" value={load.daysPerMonth} onChange={(e: any) => updateLoad('daysPerMonth', Number(e.target.value))} /></td>
                         <td className="p-3 text-[#27AE60] font-bold">{kwhMonth.toFixed(1)}</td>
@@ -266,24 +282,24 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
               ))}
             </Select>
           </div>
-          <Field label="Potência Pmax" unit="W"><Input type="number" value={state.equipment.modulePower} onChange={updater('equipment','modulePower')} disabled={selectedModuleId !== 'custom'} /></Field>
-          <Field label="Voc" unit="V"><Input type="number" step="0.01" value={state.equipment.moduleVoc} onChange={updater('equipment','moduleVoc')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Potência Pmax" unit="W" hint="Potência nominal máxima do módulo sob STC (1000W/m², 25°C). Define a base de potência do arranjo."><Input type="number" value={state.equipment.modulePower} onChange={updater('equipment','modulePower')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Voc" unit="V" hint="Tensão de Circuito Aberto. Crucial para avaliar qual será a tensão máxima da string para não estourar o inversor no frio."><Input type="number" step="0.01" value={state.equipment.moduleVoc} onChange={updater('equipment','moduleVoc')} disabled={selectedModuleId !== 'custom'} /></Field>
           <Field label="Vmp" unit="V"><Input type="number" step="0.01" value={state.equipment.moduleVmp} onChange={updater('equipment','moduleVmp')} disabled={selectedModuleId !== 'custom'} /></Field>
-          <Field label="Isc" unit="A"><Input type="number" step="0.01" value={state.equipment.moduleIsc} onChange={updater('equipment','moduleIsc')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Isc" unit="A" hint="Corrente de Curto Circuito. Fundamental para o dimensionamento dos disjuntores e cabos do lado de Corrente Contínua."><Input type="number" step="0.01" value={state.equipment.moduleIsc} onChange={updater('equipment','moduleIsc')} disabled={selectedModuleId !== 'custom'} /></Field>
           <Field label="Imp" unit="A"><Input type="number" step="0.01" value={state.equipment.moduleImp} onChange={updater('equipment','moduleImp')} disabled={selectedModuleId !== 'custom'} /></Field>
-          <Field label="Coef. Temp. Voc" unit="%/°C"><Input type="number" step="0.001" value={state.equipment.moduleTempCoeffVoc} onChange={updater('equipment','moduleTempCoeffVoc')} disabled={selectedModuleId !== 'custom'} /></Field>
-          <Field label="Coef. Temp. Pmax" unit="%/°C"><Input type="number" step="0.001" value={state.equipment.moduleTempCoeffPmax} onChange={updater('equipment','moduleTempCoeffPmax')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Coef. Temp. Voc" unit="%/°C" hint="Fator multiplicador do aumento da tensão quando a célula exposta a temperaturas frias (abaixo de 25°C)."><Input type="number" step="0.001" value={state.equipment.moduleTempCoeffVoc} onChange={updater('equipment','moduleTempCoeffVoc')} disabled={selectedModuleId !== 'custom'} /></Field>
+          <Field label="Coef. Temp. Pmax" unit="%/°C" hint="Medida percentual de perda térmica na potência fotovoltaica, quando acima dos limites da Condição Standard."><Input type="number" step="0.001" value={state.equipment.moduleTempCoeffPmax} onChange={updater('equipment','moduleTempCoeffPmax')} disabled={selectedModuleId !== 'custom'} /></Field>
           <Field label="Eficiência Módulo" unit="%"><Input type="number" step="0.1" value={state.equipment.moduleEfficiency} onChange={updater('equipment','moduleEfficiency')} disabled={selectedModuleId !== 'custom'} /></Field>
           <Field label="Área do Módulo" unit="m²"><Input type="number" step="0.01" value={state.equipment.moduleArea} onChange={updater('equipment','moduleArea')} disabled={selectedModuleId !== 'custom'} /></Field>
           <Field label="Peso do Módulo" unit="kg"><Input type="number" step="0.1" value={state.equipment.moduleWeight} onChange={updater('equipment','moduleWeight')} disabled={selectedModuleId !== 'custom'} /></Field>
         </Block>
         <Block title="Inversor de Frequência (OND)">
-          <Field label="Potência Nominal CA" unit="W"><Input type="number" value={state.equipment.inverterPower} onChange={updater('equipment','inverterPower')} /></Field>
-          <Field label="Máxima Tensão CC (Entrada)" unit="V"><Input type="number" value={state.equipment.inverterMaxDcV} onChange={updater('equipment','inverterMaxDcV')} /></Field>
-          <Field label="MPPT Voltagem Mínima" unit="V"><Input type="number" value={state.equipment.inverterMpptMinV} onChange={updater('equipment','inverterMpptMinV')} /></Field>
-          <Field label="MPPT Voltagem Máxima" unit="V"><Input type="number" value={state.equipment.inverterMpptMaxV} onChange={updater('equipment','inverterMpptMaxV')} /></Field>
+          <Field label="Potência Nominal CA" unit="W" hint="Potência efetiva que converte a energia para o quadro elétrico."><Input type="number" value={state.equipment.inverterPower} onChange={updater('equipment','inverterPower')} /></Field>
+          <Field label="Máxima Tensão CC (Entrada)" unit="V" hint="Tensão que nunca deve ser excedida nem sob clima polar. Se excedida, destrói os circuitos de entrada."><Input type="number" value={state.equipment.inverterMaxDcV} onChange={updater('equipment','inverterMaxDcV')} /></Field>
+          <Field label="MPPT Voltagem Mínima" unit="V" hint="Tensão de base para garantir a captura das cadeias sob baixa luminosidade/nublado."><Input type="number" value={state.equipment.inverterMpptMinV} onChange={updater('equipment','inverterMpptMinV')} /></Field>
+          <Field label="MPPT Voltagem Máxima" unit="V" hint="Limite operacional no qual ocorre tracking eficaz com rendimento Euro (pico da parabólica de rendimento)."><Input type="number" value={state.equipment.inverterMpptMaxV} onChange={updater('equipment','inverterMpptMaxV')} /></Field>
           <Field label="Corrente Max Entrada CC" unit="A"><Input type="number" value={state.equipment.inverterMaxI} onChange={updater('equipment','inverterMaxI')} /></Field>
-          <Field label="Eficiência Euro" unit="%"><Input type="number" step="0.1" value={state.equipment.inverterEfficiency} onChange={updater('equipment','inverterEfficiency')} /></Field>
+          <Field label="Eficiência Euro" unit="%" hint="Eficiência Europeia média ponderada nos estágios de carga e tensão intermédias."><Input type="number" step="0.1" value={state.equipment.inverterEfficiency} onChange={updater('equipment','inverterEfficiency')} /></Field>
         </Block>
         <Block title="Bateria (BESS)">
           <Field label="Química Celular">
@@ -295,7 +311,8 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
           </Field>
           <Field label="Voltagem Nominal" unit="V"><Input type="number" value={state.equipment.batteryVoltage} onChange={updater('equipment','batteryVoltage')} /></Field>
           <Field label="Capacidade Nominal" unit="Ah"><Input type="number" value={state.equipment.batteryCapacity} onChange={updater('equipment','batteryCapacity')} /></Field>
-          <Field label="DoD (Profundidade Max)" unit="%"><Input type="number" value={state.equipment.batteryDod} onChange={updater('equipment','batteryDod')} /></Field>
+          <Field label="Corrente Máx. Descarga" unit="A" hint="Limite técnico de descarga da bateria (ex: BMS Limit ou C-rate). Relevante para potência de pico híbrida."><Input type="number" value={state.equipment.batteryMaxDischargeA || 50} onChange={updater('equipment','batteryMaxDischargeA')} /></Field>
+          <Field label="DoD (Profundidade Max)" unit="%" hint="Depth of Discharge: Nível tolerável de uso percentual diário para garantir a expectativa de vida (ciclos vitais) do acumulador. (ex. 80 para Lítio, 50 para Chumbo)."><Input type="number" value={state.equipment.batteryDod} onChange={updater('equipment','batteryDod')} /></Field>
           <Field label="Ciclos Vitais" unit="ciclos"><Input type="number" value={state.equipment.batteryCycles} onChange={updater('equipment','batteryCycles')} /></Field>
         </Block>
       </div>
@@ -313,8 +330,9 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
               <option>Híbrido</option>
             </Select>
           </Field>
-          <Field label="Autonomia Desejada (Off/Híbr." unit="Dias"><Input type="number" step="0.5" value={state.sizing.autonomyDays} onChange={updater('sizing','autonomyDays')} /></Field>
-          <Field label="Oversize (Margem)" unit="%">
+          <Field label="Autonomia Desejada (Off/Híbr." unit="Dias" hint="Quantidade de dias que o banco de baterias deve sustentar as cargas sem sol (Duração da Autonomia)."><Input type="number" step="0.5" value={state.sizing.autonomyDays} onChange={updater('sizing','autonomyDays')} /></Field>
+          <Field label="Fato de Simultaneidade" unit="" hint="Parcela das cargas prioritárias que funcionará ao mesmo tempo (0.1 a 1.0). Fundamental para não sobrecarregar inversor/bateria."><Input type="number" step="0.1" min="0.1" max="1.0" value={state.sizing.simultaneityFactor || 0.8} onChange={updater('sizing','simultaneityFactor')} /></Field>
+          <Field label="Oversize (Margem)" unit="%" hint="Margem adicional de potência CC acrescida para lidar com degradação secular e crescimento de consumo.">
             <Select value={state.sizing.oversizingFactor} onChange={updater('sizing','oversizingFactor')}>
               <option value="0">0%</option>
               <option value="5">5%</option>
@@ -323,7 +341,7 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
               <option value="30">30%</option>
             </Select>
           </Field>
-          <Field label="Relação CC/CA Máx" unit="">
+          <Field label="Relação CC/CA Máx" unit="" hint="Oversizing Factor (Overload Ratio). Expressa o quanto a potência de pico dos painéis supera o nível nominal do inversor (1.1x ~ 1.35x recomendado).">
             <Select value={state.sizing.maxDcAcRatio} onChange={updater('sizing','maxDcAcRatio')}>
               <option value="0.80">0.80</option>
               <option value="1.00">1.00</option>
@@ -336,9 +354,9 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
           <Field label="Distância Cabos CA (Quadro)" unit="m"><Input type="number" value={state.sizing.cableDistanceAc} onChange={updater('sizing','cableDistanceAc')} /></Field>
         </Block>
         <Block title="Mapeamento de Perdas (Yield Factors)">
-          <Field label="Sombreamento e Horizonte" unit="%"><Input type="number" step="0.1" value={state.sizing.losses.shading} onChange={(e: any) => update('sizing', 'losses', {...state.sizing.losses, shading: Number(e.target.value)})} /></Field>
-          <Field label="Sujidade (Soiling)" unit="%"><Input type="number" step="0.1" value={state.sizing.losses.soiling} onChange={(e: any) => update('sizing', 'losses', {...state.sizing.losses, soiling: Number(e.target.value)})} /></Field>
-          <Field label="Mismatch (Diodos/Degrad.)" unit="%"><Input type="number" step="0.1" value={state.sizing.losses.mismatch} onChange={(e: any) => update('sizing', 'losses', {...state.sizing.losses, mismatch: Number(e.target.value)})} /></Field>
+          <Field label="Sombreamento e Horizonte" unit="%" hint="Perdas por obstruções físicas como prédios ou árvores que interceptam a trajetória solar no local."><Input type="number" step="0.1" value={state.sizing.losses.shading} onChange={(e: any) => update('sizing', 'losses', {...state.sizing.losses, shading: Number(e.target.value)})} /></Field>
+          <Field label="Sujidade (Soiling)" unit="%" hint="Camada de poeira, pólen, neve ou detritos sobre a superfície de vidro do painel que reduz captação."><Input type="number" step="0.1" value={state.sizing.losses.soiling} onChange={(e: any) => update('sizing', 'losses', {...state.sizing.losses, soiling: Number(e.target.value)})} /></Field>
+          <Field label="Mismatch (Diodos/Degrad.)" unit="%" hint="Perdas por variações sutis no rendimento elétrico entre diferentes painéis na mesma string."><Input type="number" step="0.1" value={state.sizing.losses.mismatch} onChange={(e: any) => update('sizing', 'losses', {...state.sizing.losses, mismatch: Number(e.target.value)})} /></Field>
           <Field label="Perdas Resistivas Cabos" unit="%"><Input type="number" step="0.1" value={state.sizing.losses.cabling} onChange={(e: any) => update('sizing', 'losses', {...state.sizing.losses, cabling: Number(e.target.value)})} /></Field>
         </Block>
         <Block title="Redundância e Backup de Dados do Projeto">
@@ -389,13 +407,13 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
     return (
       <div className="animate-in fade-in duration-300">
         <Block title="Inputs Econômicos e Valuation">
-          <Field label="CAPEX: Preço por Wp Base" unit="R$/Wp"><Input type="number" step="0.01" value={state.finance.capexPerWp} onChange={updater('finance','capexPerWp')} /></Field>
+          <Field label="CAPEX: Preço por Wp Base" unit="R$/Wp" hint="Capital Expenditure: Avalia o custo de compra + instalação padronizado por Watt pico. (Ex: 3,50 $/Wp)"><Input type="number" step="0.01" value={state.finance.capexPerWp} onChange={updater('finance','capexPerWp')} /></Field>
           <Field label="CAPEX: Preço Bateria Unid." unit="R$"><Input type="number" step="10" value={state.finance.batteryCostPerUnit} onChange={updater('finance','batteryCostPerUnit')} /></Field>
-          <Field label="OPEX Anual Estimado" unit="R$/ano"><Input type="number" value={state.finance.opexYearly} onChange={updater('finance','opexYearly')} /></Field>
+          <Field label="OPEX Anual Estimado" unit="R$/ano" hint="Operational Expenditure: Despesa contínua, operação e manutenção do sistema anualmente."><Input type="number" value={state.finance.opexYearly} onChange={updater('finance','opexYearly')} /></Field>
           <Field label="Tarifa Energia Atual" unit="R$/kWh"><Input type="number" step="0.01" value={state.finance.energyTariff} onChange={updater('finance','energyTariff')} /></Field>
           <Field label="Inflação Tarifária (Anual)" unit="%"><Input type="number" step="0.5" value={state.finance.tariffInflation} onChange={updater('finance','tariffInflation')} /></Field>
-          <Field label="Taxa de Desconto (TMA)" unit="%/ano"><Input type="number" step="0.1" value={state.finance.discountRate} onChange={updater('finance','discountRate')} /></Field>
-          <Field label="Prazo de Análise" unit="Anos"><Input type="number" value={state.finance.analysisYears} onChange={updater('finance','analysisYears')} /></Field>
+          <Field label="Taxa de Desconto (TMA)" unit="%/ano" hint="Taxa Mínima de Atratividade (TMA): Rendimento básico desejado pelo inversor com base no CDI ou afins, usado no cálculo do NPV."><Input type="number" step="0.1" value={state.finance.discountRate} onChange={updater('finance','discountRate')} /></Field>
+          <Field label="Prazo de Análise" unit="Anos" hint="Ciclo de vida analisado para avaliação do fluxo de caixa e retorno financeiro."><Input type="number" value={state.finance.analysisYears} onChange={updater('finance','analysisYears')} /></Field>
         </Block>
       </div>
     );
