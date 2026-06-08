@@ -147,7 +147,7 @@ export default function App() {
               <header className="mb-8 border-b border-line pb-4">
                 <h2 className="text-xl font-serif italic m-0 text-ink">{MODULES.find(m => m.id === activeTab)?.label}</h2>
               </header>
-              <ModularForms state={state} update={updateState} currentTab={activeTab} />
+              <ModularForms state={state} update={updateState} currentTab={activeTab} results={results} />
             </div>
           </section>
         ) : (

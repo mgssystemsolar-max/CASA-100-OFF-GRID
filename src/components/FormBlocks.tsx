@@ -1,7 +1,8 @@
 import React from 'react';
-import { AppState } from '../types';
+import { AppState, CalculationResults } from '../types';
 import { HelpCircle, MapPin } from 'lucide-react';
 import { MapPicker } from './MapPicker';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
 
 export const Block = ({ title, children }: any) => (
   <section className="mb-10">
@@ -52,7 +53,7 @@ const MODULE_DATABASE = [
   { id: 'osda_550', name: 'OSDA Solar 550W', power: 550, voc: 50.0, vmp: 41.8, isc: 13.99, imp: 13.16, coeffVoc: -0.27, coeffPmax: -0.35, eff: 21.3, area: 2.58, weight: 28.6 },
 ];
 
-export function ModularForms({ state, update, currentTab }: { state: AppState, update: Function, currentTab: string }) {
+export function ModularForms({ state, update, currentTab, results }: { state: AppState, update: Function, currentTab: string, results?: CalculationResults }) {
   const updater = (sec: keyof AppState, field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const val = e.target.type === 'number' ? Number(e.target.value) : e.target.value;
     update(sec, field, val);
@@ -118,6 +119,24 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
         if (sw.length > 0) {
           const avgSw = sw.reduce((a: number,b: number) => a+b, 0) / sw.length;
           update('climate', 'hsp', Number((avgSw * 0.277778).toFixed(2))); // convert MJ/m² to kWh/m² (HSP)
+          
+          if (data.daily.time) {
+            const monthlySums: number[] = new Array(12).fill(0);
+            const monthlyCounts: number[] = new Array(12).fill(0);
+            data.daily.time.forEach((dateStr: string, idx: number) => {
+               if (data.daily.shortwave_radiation_sum[idx] !== null) {
+                  const month = parseInt(dateStr.split('-')[1], 10) - 1;
+                  monthlySums[month] += data.daily.shortwave_radiation_sum[idx];
+                  monthlyCounts[month]++;
+               }
+            });
+            const monthlyHsp = monthlySums.map((sum, i) => {
+               const avg = monthlyCounts[i] > 0 ? sum / monthlyCounts[i] : 0;
+               return Number((avg * 0.277778).toFixed(2));
+            });
+            update('climate', 'monthlyHsp', monthlyHsp);
+          }
+
           update('climate', 'avgTemp', Number((tmean.reduce((a: number,b: number) => a+b, 0) / tmean.length).toFixed(1)));
           update('climate', 'minTemp', Number(Math.min(...tmin).toFixed(1)));
           update('climate', 'maxTemp', Number(Math.max(...tmax).toFixed(1)));
@@ -227,7 +246,28 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
           <Field label="Temperátura Mínima Extrema" unit="°C"><Input type="number" value={state.climate.minTemp} onChange={updater('climate','minTemp')} /></Field>
           <Field label="Temperatura Máxima Extrema" unit="°C"><Input type="number" value={state.climate.maxTemp} onChange={updater('climate','maxTemp')} /></Field>
         </Block>
-        <div className="text-xs text-[#888] font-mono mt-4 p-4 border border-line border-dashed text-center">Integração API NASA POWER / SolarGIS (Simulado na versão offline)</div>
+        
+        {state.climate.monthlyHsp && state.climate.monthlyHsp.length === 12 && (
+           <div className="mt-6 border border-line bg-white dark:bg-[#1E1E1E] p-4 text-center">
+              <h3 className="text-[10px] uppercase tracking-widest text-[#666] font-bold mb-4">Sazonalidade da Irradiação Solar (HSP)</h3>
+              <div className="w-full h-[250px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m, i) => ({ month: m, hsp: state.climate.monthlyHsp![i] }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
+                       <XAxis dataKey="month" fontSize={10} axisLine={false} tickLine={false} />
+                       <YAxis fontSize={10} axisLine={false} tickLine={false} tickFormatter={(val) => `${val}`} />
+                       <Tooltip 
+                          formatter={(value: number) => [`${value.toFixed(2)} kWh/m²/dia`, 'HSP']}
+                          contentStyle={{ fontSize: '12px', fontFamily: 'monospace' }} 
+                       />
+                       <Bar dataKey="hsp" fill="#F39C12" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                 </ResponsiveContainer>
+              </div>
+           </div>
+        )}
+        
+        <div className="text-xs text-[#888] font-mono mt-4 p-4 border border-line border-dashed text-center">Integração API Open-Meteo</div>
       </div>
     );
   }
@@ -255,7 +295,7 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
               <span className="text-[10px] uppercase tracking-[0.1em] text-[#888] font-bold">Levantamento de Carga</span>
               <button 
                 onClick={() => {
-                  const newLoad = { id: Date.now().toString(), name: 'Nova Carga', qty: 1, powerW: 100, hoursPerDay: 1, daysPerMonth: 30 };
+                  const newLoad = { id: Date.now().toString(), name: 'Nova Carga', qty: 1, powerW: 100, hoursPerDay: 1, daysPerMonth: 30, startHour: 18 };
                   update('consumption', 'loads', [...(state.consumption.loads || []), newLoad]);
                 }}
                 className="bg-accent text-white px-3 py-1 text-xs font-bold rounded cursor-pointer hover:bg-[#B34500]"
@@ -273,6 +313,7 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
                     <th className="p-3 font-normal w-24">Quant.</th>
                     <th className="p-3 font-normal w-32">Potência (W)</th>
                     <th className="p-3 font-normal w-24">FP</th>
+                    <th className="p-3 font-normal w-24">Hora Início</th>
                     <th className="p-3 font-normal w-28">Horas/Dia</th>
                     <th className="p-3 font-normal w-28">Dias/Mês</th>
                     <th className="p-3 font-normal w-32">Energia (kWh/mês)</th>
@@ -296,6 +337,7 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
                         <td className="p-2"><Input type="number" min="1" value={load.qty} onChange={(e: any) => updateLoad('qty', Number(e.target.value))} /></td>
                         <td className="p-2"><Input type="number" step="1" value={load.powerW} onChange={(e: any) => updateLoad('powerW', Number(e.target.value))} /></td>
                         <td className="p-2"><Input type="number" step="0.05" min="0.1" max="1" value={load.powerFactor || 1} onChange={(e: any) => updateLoad('powerFactor', Number(e.target.value))} /></td>
+                        <td className="p-2"><Input type="number" min="0" max="23" value={load.startHour ?? 18} onChange={(e: any) => updateLoad('startHour', Number(e.target.value))} /></td>
                         <td className="p-2"><Input type="number" step="0.1" value={load.hoursPerDay} onChange={(e: any) => updateLoad('hoursPerDay', Number(e.target.value))} /></td>
                         <td className="p-2"><Input type="number" min="1" max="31" value={load.daysPerMonth} onChange={(e: any) => updateLoad('daysPerMonth', Number(e.target.value))} /></td>
                         <td className="p-3 text-[#27AE60] font-bold">{kwhMonth.toFixed(1)}</td>
@@ -309,7 +351,7 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
                     );
                   })}
                   {(state.consumption.loads || []).length === 0 && (
-                    <tr><td colSpan={7} className="p-6 text-center text-[#888]">Nenhuma carga cadastrada. Adicione equipamentos.</td></tr>
+                    <tr><td colSpan={10} className="p-6 text-center text-[#888]">Nenhuma carga cadastrada. Adicione equipamentos.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -319,6 +361,42 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
                 </span>
               </div>
             </div>
+            
+            {/* Daily Load Profile Chart */}
+            {(state.consumption.loads || []).length > 0 && (() => {
+               const profile = Array.from({ length: 24 }).map((_, i) => ({ hour: `${i}h`, kw: 0 }));
+               (state.consumption.loads || []).forEach((load: any) => {
+                 const kW = (load.qty * load.powerW) / 1000;
+                 const start = load.startHour ?? 18;
+                 const duration = Math.ceil(load.hoursPerDay);
+                 if (duration > 0) {
+                   for (let d = 0; d < duration; d++) {
+                     const h = (start + d) % 24;
+                     profile[h].kw += kW;
+                   }
+                 }
+               });
+               
+               return (
+                 <div className="mt-6 border border-line bg-white dark:bg-[#1E1E1E] p-4">
+                   <h3 className="text-[10px] uppercase tracking-widest text-[#666] font-bold mb-4 text-center">Perfil de Carga Diário (Pico de Demanda)</h3>
+                   <div className="w-full h-[250px]">
+                     <ResponsiveContainer width="100%" height="100%">
+                       <BarChart data={profile} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
+                         <XAxis dataKey="hour" fontSize={10} axisLine={false} tickLine={false} />
+                         <YAxis fontSize={10} axisLine={false} tickLine={false} tickFormatter={(val) => `${val} kW`} />
+                         <Tooltip 
+                           formatter={(value: number) => [`${value.toFixed(2)} kW`, 'Demanda']}
+                           contentStyle={{ fontSize: '12px', fontFamily: 'monospace' }} 
+                         />
+                         <Bar dataKey="kw" fill="#E74C3C" radius={[2, 2, 0, 0]} />
+                       </BarChart>
+                     </ResponsiveContainer>
+                   </div>
+                 </div>
+               );
+            })()}
           </section>
         )}
       </div>
@@ -471,6 +549,29 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
           <Field label="Taxa de Desconto (TMA)" unit="%/ano" hint="Taxa Mínima de Atratividade (TMA): Rendimento básico desejado pelo inversor com base no CDI ou afins, usado no cálculo do NPV."><Input type="number" step="0.1" value={state.finance.discountRate} onChange={updater('finance','discountRate')} /></Field>
           <Field label="Prazo de Análise" unit="Anos" hint="Ciclo de vida analisado para avaliação do fluxo de caixa e retorno financeiro."><Input type="number" value={state.finance.analysisYears} onChange={updater('finance','analysisYears')} /></Field>
         </Block>
+
+        {results && results.economicData && (
+          <div className="mt-8 border border-line bg-white dark:bg-[#1E1E1E] p-4">
+            <h3 className="text-[10px] uppercase tracking-widest text-[#666] font-bold mb-4 text-center">Curva de Retorno de Investimento (Payback)</h3>
+            <div className="w-full h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={results.economicData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
+                  <XAxis dataKey="year" fontSize={10} axisLine={false} tickLine={false} label={{ value: 'Ano', position: 'insideBottom', offset: -10, fontSize: 10 }} />
+                  <YAxis fontSize={10} axisLine={false} tickLine={false} tickFormatter={(val) => `R$${(val/1000).toFixed(0)}k`} />
+                  <Tooltip 
+                    formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
+                    labelFormatter={(label) => `Ano ${label}`}
+                    contentStyle={{ fontSize: '12px', fontFamily: 'monospace' }} 
+                  />
+                  <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px', fontFamily: 'sans-serif' }} />
+                  <Line type="monotone" dataKey="capexLine" name="Custo CAPEX" stroke="#E74C3C" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                  <Line type="monotone" dataKey="cumulativeSavings" name="Economia Acumulada" stroke="#3498DB" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

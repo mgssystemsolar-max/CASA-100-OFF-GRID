@@ -4,6 +4,7 @@ export interface LoadItem {
   qty: number;
   powerW: number;
   powerFactor?: number;
+  startHour?: number;
   hoursPerDay: number;
   daysPerMonth: number;
   isPriority?: boolean; // New field for hybrid systems
@@ -29,6 +30,7 @@ export interface AppState {
   };
   climate: {
     hsp: number;
+    monthlyHsp?: number[];
     avgTemp: number;
     minTemp: number;
     maxTemp: number;
