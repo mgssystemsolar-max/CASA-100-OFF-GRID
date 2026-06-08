@@ -220,11 +220,14 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   
   let noSolarCum = 0;
   let solarCum = -capexTotal;
+  let accumSavings = 0;
   
   economicData.push({
     year: 0,
     noSolarCumulative: 0,
-    solarCumulative: solarCum
+    solarCumulative: solarCum,
+    cumulativeSavings: 0,
+    capexLine: capexTotal
   });
 
   for(let y=1; y<=years; y++) {
@@ -245,6 +248,8 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
     cashFlows.push(savings - costs);
     generatedEnergy.push(energyY);
     
+    accumSavings += (savings - costs);
+    
     // Their net flow for the year is effectively: - (billNoSolar - savings) - costs
     // Which means: solarCum = solarCum - (billNoSolar - savings) - costs
     solarCum += (savings - costs) - billNoSolar;
@@ -252,7 +257,9 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
     economicData.push({
       year: y,
       noSolarCumulative: noSolarCum,
-      solarCumulative: solarCum
+      solarCumulative: solarCum,
+      cumulativeSavings: accumSavings,
+      capexLine: capexTotal
     });
   }
 

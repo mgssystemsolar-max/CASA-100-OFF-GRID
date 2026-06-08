@@ -268,26 +268,52 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
         {/* ECONOMIC ANALYSIS */}
         <div className="print:break-inside-avoid mt-8">
            <h3 className="text-[10px] bg-[#2980B9] text-white inline-block px-2 py-1 font-mono uppercase mb-2">6. Análise Econômica de Longo Prazo</h3>
-           <div className="bg-white dark:bg-[#1E1E1E] border border-line p-4">
-             <div className="text-xs font-mono text-[#666] mb-4 uppercase tracking-widest text-center">
-               Fluxo de Caixa Acumulado ao longo de {state.finance.analysisYears} anos (Cenário "Sem Solar" vs "Com Solar")
+           
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+             <div className="bg-white dark:bg-[#1E1E1E] border border-line p-4">
+               <div className="text-xs font-mono text-[#666] mb-4 uppercase tracking-widest text-center">
+                 Fluxo de Caixa Acumulado (Cenário "Sem Solar" vs "Com Solar")
+               </div>
+               <div className="w-full h-[300px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                   <RechartsLineChart data={results.economicData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
+                     <XAxis dataKey="year" fontSize={10} axisLine={false} tickLine={false} label={{ value: 'Ano', position: 'insideBottom', offset: -10, fontSize: 10 }} />
+                     <YAxis fontSize={10} axisLine={false} tickLine={false} tickFormatter={(val) => `R$${(val/1000).toFixed(0)}k`} />
+                     <Tooltip 
+                       formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
+                       labelFormatter={(label) => `Ano ${label}`}
+                       contentStyle={{ fontSize: '12px', fontFamily: 'monospace' }} 
+                     />
+                     <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px', fontFamily: 'sans-serif' }} />
+                     <Line type="monotone" dataKey="noSolarCumulative" name="Gasto s/ Solar" stroke="#E74C3C" strokeWidth={2} dot={false} />
+                     <Line type="monotone" dataKey="solarCumulative" name="Caixa c/ Solar" stroke="#27AE60" strokeWidth={2} dot={false} />
+                   </RechartsLineChart>
+                 </ResponsiveContainer>
+               </div>
              </div>
-             <div className="w-full h-[350px]">
-               <ResponsiveContainer width="100%" height="100%">
-                 <RechartsLineChart data={results.economicData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
-                   <XAxis dataKey="year" fontSize={10} axisLine={false} tickLine={false} label={{ value: 'Ano', position: 'insideBottom', offset: -10, fontSize: 10 }} />
-                   <YAxis fontSize={10} axisLine={false} tickLine={false} tickFormatter={(val) => `R$${(val/1000).toFixed(0)}k`} />
-                   <Tooltip 
-                     formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
-                     labelFormatter={(label) => `Ano ${label}`}
-                     contentStyle={{ fontSize: '12px', fontFamily: 'monospace' }} 
-                   />
-                   <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px', fontFamily: 'sans-serif' }} />
-                   <Line type="monotone" dataKey="noSolarCumulative" name="Cenário SEM Solar (Gasto Acumulado com Concessionária)" stroke="#E74C3C" strokeWidth={2} dot={false} />
-                   <Line type="monotone" dataKey="solarCumulative" name="Cenário COM Solar (CAPEX + OPEX + Economia Acumulada)" stroke="#27AE60" strokeWidth={2} dot={false} />
-                 </RechartsLineChart>
-               </ResponsiveContainer>
+
+             <div className="bg-white dark:bg-[#1E1E1E] border border-line p-4">
+               <div className="text-xs font-mono text-[#666] mb-4 uppercase tracking-widest text-center">
+                 Curva de Retorno de Investimento (Payback)
+               </div>
+               <div className="w-full h-[300px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                   <RechartsLineChart data={results.economicData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
+                     <XAxis dataKey="year" fontSize={10} axisLine={false} tickLine={false} label={{ value: 'Ano', position: 'insideBottom', offset: -10, fontSize: 10 }} />
+                     <YAxis fontSize={10} axisLine={false} tickLine={false} tickFormatter={(val) => `R$${(val/1000).toFixed(0)}k`} />
+                     <Tooltip 
+                       formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`}
+                       labelFormatter={(label) => `Ano ${label}`}
+                       contentStyle={{ fontSize: '12px', fontFamily: 'monospace' }} 
+                     />
+                     <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px', fontFamily: 'sans-serif' }} />
+                     <Line type="monotone" dataKey="capexLine" name="Custo CAPEX" stroke="#E74C3C" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                     <Line type="monotone" dataKey="cumulativeSavings" name="Economia Acumulada" stroke="#3498DB" strokeWidth={2} dot={false} />
+                   </RechartsLineChart>
+                 </ResponsiveContainer>
+               </div>
              </div>
            </div>
         </div>

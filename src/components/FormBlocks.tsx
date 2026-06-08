@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppState } from '../types';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, MapPin } from 'lucide-react';
+import { MapPicker } from './MapPicker';
 
 export const Block = ({ title, children }: any) => (
   <section className="mb-10">
@@ -58,6 +59,7 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
   };
 
   const [isLocating, setIsLocating] = React.useState(false);
+  const [isFetchingClimate, setIsFetchingClimate] = React.useState(false);
   const [selectedModuleId, setSelectedModuleId] = React.useState('custom');
 
   const onModuleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -96,7 +98,43 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
         }
       } catch (e) {
         console.error('Erro ao buscar CEP', e);
+       }
+    }
+  };
+
+  const fetchClimateData = async (lat: number, lng: number) => {
+    setIsFetchingClimate(true);
+    try {
+      // Historical climate API from Open-Meteo for the past year to get average radiation and temperatures
+      const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=2023-01-01&end_date=2023-12-31&daily=shortwave_radiation_sum,temperature_2m_mean,temperature_2m_max,temperature_2m_min&timezone=America%2FSao_Paulo`);
+      const data = await res.json();
+      
+      if (data && data.daily) {
+        const sw = data.daily.shortwave_radiation_sum.filter((v: number) => v !== null);
+        const tmean = data.daily.temperature_2m_mean.filter((v: number) => v !== null);
+        const tmax = data.daily.temperature_2m_max.filter((v: number) => v !== null);
+        const tmin = data.daily.temperature_2m_min.filter((v: number) => v !== null);
+
+        if (sw.length > 0) {
+          const avgSw = sw.reduce((a: number,b: number) => a+b, 0) / sw.length;
+          update('climate', 'hsp', Number((avgSw * 0.277778).toFixed(2))); // convert MJ/m² to kWh/m² (HSP)
+          update('climate', 'avgTemp', Number((tmean.reduce((a: number,b: number) => a+b, 0) / tmean.length).toFixed(1)));
+          update('climate', 'minTemp', Number(Math.min(...tmin).toFixed(1)));
+          update('climate', 'maxTemp', Number(Math.max(...tmax).toFixed(1)));
+        }
       }
+      
+      // Also grab altitude
+      const altRes = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
+      const altData = await altRes.json();
+      if (altData && altData.elevation && altData.elevation.length > 0) {
+        update('project', 'altitude', Math.round(altData.elevation[0]));
+      }
+
+    } catch(e) {
+      console.error("Erro ao buscar dados climáticos", e);
+    } finally {
+      setIsFetchingClimate(false);
     }
   };
 
@@ -107,8 +145,11 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
       const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
       const data = await res.json();
       if (data && data.length > 0) {
-        update('project', 'lat', parseFloat(data[0].lat));
-        update('project', 'lng', parseFloat(data[0].lon));
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        update('project', 'lat', lat);
+        update('project', 'lng', lng);
+        await fetchClimateData(lat, lng);
       }
     } catch (e) {
       console.error('Erro ao geocodificar', e);
@@ -138,6 +179,20 @@ export function ModularForms({ state, update, currentTab }: { state: AppState, u
           <Field label="Latitude"><Input type="number" step="0.0001" value={state.project.lat} onChange={updater('project','lat')} /></Field>
           <Field label="Longitude"><Input type="number" step="0.0001" value={state.project.lng} onChange={updater('project','lng')} /></Field>
           <Field label="Altitude" unit="m"><Input type="number" value={state.project.altitude} onChange={updater('project','altitude')} /></Field>
+        </Block>
+        
+        <Block title="Seleção de Localização no Mapa">
+           <div className="col-span-1 md:col-span-2 xl:col-span-3 p-4 relative">
+              <div className="flex items-center gap-2 mb-4 text-[#C0392B] font-bold text-xs uppercase">
+                 <MapPin className="w-4 h-4" /> Selecione o local exato
+              </div>
+              <MapPicker lat={state.project.lat} lng={state.project.lng} onChange={(lat, lng) => {
+                 update('project', 'lat', lat);
+                 update('project', 'lng', lng);
+                 fetchClimateData(lat, lng);
+              }} />
+              {isFetchingClimate && <div className="absolute inset-0 bg-white/80 dark:bg-[#121212]/80 flex items-center justify-center font-bold text-sm text-[#C0392B] z-10 backdrop-blur-sm">Buscando dados climáticos da região...</div>}
+           </div>
         </Block>
         <Block title="Rede Elétrica e Concessionária">
           <Field label="Distribuidora (Concessionária)"><Input type="text" value={state.project.utility} onChange={updater('project','utility')} /></Field>

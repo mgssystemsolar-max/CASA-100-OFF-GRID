@@ -161,7 +161,7 @@ export interface CalculationResults {
   payback: number;
   roi: number;
   yearlySavingsStart: number;
-  economicData: Array<{ year: number; noSolarCumulative: number; solarCumulative: number; }>;
+  economicData: Array<{ year: number; noSolarCumulative: number; solarCumulative: number; cumulativeSavings: number; capexLine: number; }>;
 
   // Calculation Memory
   calculationMemory: Array<{
