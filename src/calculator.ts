@@ -138,10 +138,21 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   
   let strings = 1;
   let modsPerString = numModules;
-  if (modsPerString > maxModulesPerString && maxModulesPerString > 0) {
-     strings = Math.ceil(numModules / maxModulesPerString);
-     modsPerString = Math.ceil(numModules / strings); 
+  
+  // Basic max module loop logic
+  while (modsPerString > maxModulesPerString && maxModulesPerString > 0) {
+     strings++;
+     modsPerString = Math.floor(numModules / strings); 
   }
+  
+  const stringVocMax = vocMaxTemp * modsPerString;
+  const stringVmpMin = vmpMinTemp * modsPerString;
+
+  // Se a corrente ficar muito alta, dividimos ainda mais as strings?
+  // Normalmente só verificamos.
+  const mpptCount = s.equipment.inverterMpptCount || 1;
+  const stringsPerMppt = Math.ceil(strings / mpptCount);
+  const currentPerMppt = stringsPerMppt * s.equipment.moduleIsc;
 
   // 5. Proteções e Cabos
   const iscArray = s.equipment.moduleIsc * strings;
@@ -334,6 +345,21 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
       norm: 'NBR 16690',
       values: `MaxMod = ${s.equipment.inverterMaxDcV} V ÷ ${vocMaxTemp.toFixed(2)} V`,
       result: `${maxModulesPerString} un.`
+    },
+    {
+      step: 'Etapa 7',
+      description: 'Arranjo de Strings (Inversor)',
+      formula: 'Strings / MPPTs',
+      values: `${numModules} Mod ÷ ${strings} Strings = ${modsPerString} Mod/String`,
+      result: `${strings} Strings (em ${mpptCount} MPPTs)`
+    },
+    {
+       step: 'Etapa 8',
+       description: 'Corrente de Curto-Circuito por MPPT (Validação)',
+       formula: 'Imp_MPPT = Strings_por_MPPT × Isc_Modulo <= Max_I_Inversor',
+       norm: 'Limites do Fabricante',
+       values: `I = ${stringsPerMppt} × ${s.equipment.moduleIsc}A = ${currentPerMppt.toFixed(2)}A (Max: ${s.equipment.inverterMaxI}A)`,
+       result: currentPerMppt <= s.equipment.inverterMaxI ? 'OK' : 'ALERTA: Isc EXCEDE LIMITE!'
     }
   ];
 
@@ -361,7 +387,8 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
     lossDegradationKwh,
     energyActualAc,
 
-    vocMaxTemp, vmpMinTemp, maxModulesPerString, minModulesPerString, strings, modsPerString,
+    vocMaxTemp, vmpMinTemp, stringVocMax, stringVmpMin, maxModulesPerString, minModulesPerString, strings, modsPerString,
+    mpptCount, stringsPerMppt, currentPerMppt,
     iscArray, breakerCcA, breakerAcA, cableAcSect, cableDcSect, voltageDropDc, voltageDropAc, dpsCcV,
     
     reqAh, battSer, battPar, totalBatts, storageKwhBruto, storageKwhUtil,

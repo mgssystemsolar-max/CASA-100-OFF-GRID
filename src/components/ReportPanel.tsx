@@ -1,164 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AppState, CalculationResults } from '../types';
-import { Download, FileText, Settings, ShieldAlert, Cpu, Zap, Battery, LineChart, Hash, Server, DollarSign, Activity } from 'lucide-react';
+import { Download, FileText, Settings, ShieldAlert, AlertTriangle, Cpu, Zap, Battery, LineChart, Hash, Server, DollarSign, Activity } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart as RechartsLineChart, Line, Legend } from 'recharts';
-import jsPDF from 'jspdf';
 
 export function ReportPanel({ state, results }: { state: AppState, results: CalculationResults }) {
   
-  const [isExporting, setIsExporting] = useState(false);
-
   const handlePrint = () => {
     window.print();
   };
 
   const handleExportPDF = () => {
-    setIsExporting(true);
-    try {
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      
-      const pWidth = doc.internal.pageSize.getWidth();
-      
-      const addTitle = (text: string, y: number) => {
-        doc.setFillColor(26, 26, 26);
-        doc.rect(14, y - 5, pWidth - 28, 7, 'F');
-        doc.setFontSize(10);
-        doc.setTextColor(255, 255, 255);
-        doc.setFont("courier", "bold");
-        doc.text(text.toUpperCase(), 16, y);
-      };
-      
-      const addRow = (label: string, value: string, y: number) => {
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.setFont("helvetica", "normal");
-        doc.text(label, 14, y);
-        
-        doc.setTextColor(0, 0, 0);
-        doc.setFont("helvetica", "bold");
-        doc.text(value, pWidth - 14, y, { align: 'right' });
-        
-        doc.setDrawColor(220, 220, 220);
-        doc.line(14, y + 2, pWidth - 14, y + 2);
-      };
-
-      // PAGE 1: COVER & EXECUTIVE SUMMARY
-      doc.setFontSize(22);
-      doc.setFont("times", "italic");
-      doc.setTextColor(26, 26, 26);
-      doc.text("ESTUDO TÉCNICO FOTOVOLTAICO", 14, 25);
-      
-      doc.setFontSize(14);
-      doc.setFont("courier", "normal");
-      doc.setTextColor(211, 84, 0);
-      doc.text(`PROJETO: ${state.project.clientName || 'N/A'}`, 14, 32);
-      
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`Sistema: ${state.sizing.systemType}`, 14, 40);
-      doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, pWidth - 14, 40, { align: 'right' });
-      
-      doc.setDrawColor(26, 26, 26);
-      doc.setLineWidth(0.5);
-      doc.line(14, 45, pWidth - 14, 45);
-
-      let currentY = 60;
-      addTitle("INFORMAÇÕES DO PROJETO", currentY);
-      currentY += 10;
-      addRow("Cliente", state.project.clientName, currentY); currentY += 8;
-      addRow("Endereço", `${state.project.street || ''}, ${state.project.number || ''}`, currentY); currentY += 8;
-      addRow("Cidade / UF", `${state.project.city || ''} / ${state.project.state || ''}`, currentY); currentY += 8;
-      addRow("Concessionária", state.project.utility, currentY); currentY += 8;
-      addRow("Demanda Contratada", `${state.project.contractedDemand} kW`, currentY); currentY += 8;
-      
-      currentY += 10;
-      addTitle("1. GERAÇÃO E DESEMPENHO", currentY);
-      currentY += 10;
-      addRow("Energia Mensal Gerada", `${results.monthlyEnergyKwh.toLocaleString('pt-BR')} kWh/mês`, currentY); currentY += 8;
-      addRow("Potência FV Recomendada", `${(results.actualPvPowerW/1000).toFixed(2)} kWp`, currentY); currentY += 8;
-      addRow("Performance Ratio (PR)", `${(results.performanceRatio * 100).toFixed(1)} %`, currentY); currentY += 8;
-      addRow("Yield Específico", `${results.specificYield.toFixed(0)} kWh/kWp/ano`, currentY); currentY += 8;
-      
-      doc.addPage();
-      currentY = 20;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(150, 150, 150);
-      doc.text(`Projeto: ${state.project.clientName} | Pg 2`, 14, 10);
-      
-      addTitle("2. ARRANJO FOTOVOLTAICO (SIZING)", currentY);
-      currentY += 10;
-      addRow("Quantidade de Módulos", `${results.numModules} un.`, currentY); currentY += 8;
-      addRow("Arranjos (Strings)", `${results.strings} seq.`, currentY); currentY += 8;
-      addRow("Módulos por String", `${results.modsPerString} un.`, currentY); currentY += 8;
-      addRow("Relação DC/AC", `${results.dcAcRatio.toFixed(2)} x`, currentY); currentY += 8;
-      addRow("Área Estimada", `${results.totalArea.toFixed(1)} m²`, currentY); currentY += 8;
-      addRow("Peso Estimado", `${results.totalWeight.toFixed(1)} kg`, currentY); currentY += 8;
-      addRow("Voc Max @ Frio", `${results.vocMaxTemp.toFixed(1)} V`, currentY); currentY += 8;
-      
-      currentY += 10;
-      addTitle("3. ENGENHARIA E PROTEÇÕES", currentY);
-      currentY += 10;
-      addRow("Disjuntor CC (String)", `${results.breakerCcA} A`, currentY); currentY += 8;
-      addRow("DPS CC (Tensão Cont.)", `${results.dpsCcV} V`, currentY); currentY += 8;
-      addRow("Condutor CC", `${results.cableDcSect} mm²`, currentY); currentY += 8;
-      addRow("Disjuntor CA (Geral)", `${results.breakerAcA} A`, currentY); currentY += 8;
-      addRow("Condutor CA", `${results.cableAcSect} mm²`, currentY); currentY += 8;
-      
-      if (state.sizing.systemType !== 'On-Grid') {
-        currentY += 10;
-        addTitle("4. ARMAZENAMENTO (BESS)", currentY);
-        currentY += 10;
-        addRow("Topologia", `${results.battSer}S ${results.battPar}P`, currentY); currentY += 8;
-        addRow("Capacidade Útil", `${results.storageKwhUtil.toFixed(1)} kWh`, currentY); currentY += 8;
-        addRow("Capacidade Bruta", `${results.storageKwhBruto.toFixed(1)} kWh`, currentY); currentY += 8;
-      }
-      
-      currentY += 10;
-      addTitle("ESCOPO DE FORNECIMENTO", currentY);
-      currentY += 10;
-      doc.setFontSize(10);
-      doc.setTextColor(50, 50, 50);
-      
-      const scopeItems = [
-        `- ${results.numModules}x Módulos Fotovoltaicos de ${state.equipment.modulePower}W (${(results.actualPvPowerW/1000).toFixed(2)} kWp)`,
-        `- 1x Inversor ${state.sizing.systemType} de ${state.equipment.inverterPower}W`,
-        state.sizing.systemType !== 'On-Grid' ? `- ${results.totalBatts}x Baterias ${state.equipment.batteryTech} ${state.equipment.batteryVoltage}V (${results.storageKwhBruto.toFixed(1)} kWh)` : null,
-        `- String box / Quadros CA e Proteções dimensionados NBR 5410/16690`,
-        `- Cabos solares e conectores MC4 correspondentes`,
-        `- Estruturas de fixação para coberturas/solo padrão`,
-        `- Projeto Executivo, ART de Instalação e Homologação na ${state.project.utility}`
-      ].filter(Boolean) as string[];
-      
-      scopeItems.forEach(item => {
-        doc.text(item, 14, currentY);
-        currentY += 7;
-      });
-      
-      currentY += 20;
-      doc.setFontSize(14);
-      doc.setFont("times", "bold");
-      doc.setTextColor(39, 174, 96);
-      doc.text(`INVESTIMENTO TOTAL (CAPEX): R$ ${results.capexTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 14, currentY);
-      
-      currentY += 40;
-      doc.setDrawColor(100, 100, 100);
-      doc.line(20, currentY, (pWidth/2)-10, currentY);
-      doc.line((pWidth/2)+10, currentY, pWidth-20, currentY);
-      
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.setFont("helvetica", "normal");
-      doc.text("MgS System Solar", 20, currentY + 5);
-      doc.text(state.project.clientName || 'Cliente', (pWidth/2)+10, currentY + 5);
-      
-      doc.save(`Projeto_Fotovoltaico_${state.project.clientName.replace(/\s+/g, '_')}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF', error);
-      alert('Houve um erro ao gerar o PDF.');
-    } finally {
-      setIsExporting(false);
-    }
+    // O recurso nativo de impressão do navegador é o único que renderiza perfeitamente
+    // as media-queries de Tailwind (print:), garantindo o layout formatado para PDF.
+    window.print();
   };
 
   const handleExportCSV = () => {
@@ -231,11 +85,11 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
         <div className="flex gap-2">
           <button onClick={handlePrint} className="p-2 border border-line bg-white text-ink hover:bg-black/5 dark:bg-[#1E1E1E] dark:text-white dark:hover:bg-[#2A2A2A] rounded cursor-pointer flex items-center gap-2 transition-colors">
             <Activity className="w-4 h-4" />
-            <span className="text-xs uppercase font-bold tracking-wider">Imprimir / Salvar</span>
+            <span className="text-xs uppercase font-bold tracking-wider">Visualização Simplificada</span>
           </button>
-          <button onClick={handleExportPDF} disabled={isExporting} className="p-2 border border-line bg-ink text-white hover:bg-[#333] rounded cursor-pointer flex items-center gap-2 transition-colors disabled:opacity-50">
+          <button onClick={handleExportPDF} className="p-2 border border-line bg-[#2980B9] text-white hover:bg-[#1A5276] rounded cursor-pointer flex items-center gap-2 transition-colors">
             <Download className="w-4 h-4" />
-            <span className="text-xs uppercase font-bold tracking-wider">{isExporting ? 'Processando...' : 'Exportar PDF'}</span>
+            <span className="text-xs uppercase font-bold tracking-wider">Gerar PDF Consolidado</span>
           </button>
         </div>
       </div>
@@ -319,22 +173,42 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
               <GridItem icon={Hash} label="Quantidade de Módulos" value={results.numModules} unit="un." />
               <GridItem icon={Server} label="Arranjos (Strings)" value={results.strings} unit="seq." />
               <GridItem icon={Settings} label="Módulos por String" value={results.modsPerString} unit="un." />
+              <GridItem label="MPPTs Usados" value={results.mpptCount} unit="un." />
+              <GridItem label="Strings / MPPT" value={results.stringsPerMppt} unit="seq." />
+              <GridItem label="Corrente / MPPT" value={results.currentPerMppt.toFixed(1)} unit="A" warn={results.currentPerMppt > state.equipment.inverterMaxI} />
               <GridItem label="Relação DC/AC" value={results.dcAcRatio.toFixed(2)} unit="x" warn={results.dcAcRatio > state.sizing.maxDcAcRatio} />
               <GridItem label="Área Estimada" value={results.totalArea.toFixed(1)} unit="m²" />
               <GridItem label="Peso Estimado" value={(results.totalWeight).toFixed(1)} unit="kg" />
-              <GridItem icon={ShieldAlert} label="Voc Max @ Frio" value={results.vocMaxTemp.toFixed(1)} unit="V" warn={results.vocMaxTemp > state.equipment.inverterMaxDcV} />
-              <GridItem label="Vmp Min @ Calor" value={results.vmpMinTemp.toFixed(1)} unit="V" />
+              <GridItem icon={ShieldAlert} label="String Voc Máx @ Frio" value={results.stringVocMax.toFixed(1)} unit="V" warn={results.stringVocMax > state.equipment.inverterMaxDcV} />
+              <GridItem label="String Vmp Mín @ Calor" value={results.stringVmpMin.toFixed(1)} unit="V" warn={results.stringVmpMin < state.equipment.inverterMpptMinV} />
            </div>
-           {results.vocMaxTemp > (state.equipment.inverterMaxDcV || Infinity) && (
-              <div className="bg-[#FFF9F5] dark:bg-[#2A1E14] border border-[#D35400] text-[#D35400] text-[10px] p-2 mt-2 font-mono">
-                !! ALERTA NBR 16690: A Tensão Voc a frio excede a máxima do inversor.
-              </div>
-           )}
-           {results.dcAcRatio > state.sizing.maxDcAcRatio && (
-              <div className="bg-[#FFF9F5] dark:bg-[#2A1E14] border border-[#D35400] text-[#D35400] text-[10px] p-2 mt-2 font-mono">
-                !! ALERTA: A Relação DC/AC atual ({results.dcAcRatio.toFixed(2)}) ultrapassa o limite especificado ({state.sizing.maxDcAcRatio}). Considere um inversor maior.
-              </div>
-           )}
+           
+           <div className="mt-2 space-y-1">
+             {results.stringVocMax > (state.equipment.inverterMaxDcV || Infinity) && (
+                <div className="bg-[#FFF9F5] dark:bg-[#2A1E14] border border-[#D35400] text-[#D35400] text-[10px] p-2 font-mono flex items-center gap-2">
+                  <ShieldAlert size={12} />
+                  !! ALERTA NBR 16690: A Tensão máxima da String a frio ({results.stringVocMax.toFixed(0)}V) excede o limite do inversor ({state.equipment.inverterMaxDcV}V). Risco de danos ao equipamento.
+                </div>
+             )}
+             {results.stringVmpMin < (state.equipment.inverterMpptMinV || 0) && (
+                <div className="bg-[#FFF9F5] dark:bg-[#2A1E14] border border-[#F39C12] text-[#F39C12] text-[10px] p-2 font-mono flex items-center gap-2">
+                  <AlertTriangle size={12} />
+                  ! AVISO: A Tensão mínima da String a quente ({results.stringVmpMin.toFixed(0)}V) está abaixo da tensão mínima do MPPT ({state.equipment.inverterMpptMinV}V). Perda de eficiência / 'clipping'.
+                </div>
+             )}
+             {results.currentPerMppt > (state.equipment.inverterMaxI || Infinity) && (
+                <div className="bg-[#FFF9F5] dark:bg-[#2A1E14] border border-[#D35400] text-[#D35400] text-[10px] p-2 font-mono flex items-center gap-2">
+                  <ShieldAlert size={12} />
+                  !! ALERTA: A corrente máxima por MPPT ({results.currentPerMppt.toFixed(1)}A) excede a capacidade do inversor ({state.equipment.inverterMaxI}A). Cuidado com corte de pico ou danos.
+                </div>
+             )}
+             {results.dcAcRatio > state.sizing.maxDcAcRatio && (
+                <div className="bg-[#FFF9F5] dark:bg-[#2A1E14] border border-[#D35400] text-[#D35400] text-[10px] p-2 font-mono flex items-center gap-2">
+                  <AlertTriangle size={12} />
+                  !! ALERTA: A Relação DC/AC atual ({results.dcAcRatio.toFixed(2)}) ultrapassa o limite especificado ({state.sizing.maxDcAcRatio}). Considere um inversor maior.
+                </div>
+             )}
+           </div>
         </div>
 
         {/* PROTEÇÕES CA/CC */}

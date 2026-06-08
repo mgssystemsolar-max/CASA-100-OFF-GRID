@@ -54,6 +54,7 @@ export interface AppState {
     inverterMaxDcV: number;
     inverterMpptMinV: number;
     inverterMpptMaxV: number;
+    inverterMpptCount: number;
     inverterMaxI: number;
     inverterEfficiency: number;
     batteryTech: 'LiFePO4' | 'Lead-Acid' | 'AGM' | 'Gel';
@@ -124,10 +125,15 @@ export interface CalculationResults {
   // Strings (Inverter limits)
   vocMaxTemp: number;
   vmpMinTemp: number;
+  stringVocMax: number;
+  stringVmpMin: number;
   maxModulesPerString: number;
   minModulesPerString: number;
   strings: number;
   modsPerString: number;
+  mpptCount: number;
+  stringsPerMppt: number;
+  currentPerMppt: number;
   
   // Electrical / Protections
   iscArray: number;
