@@ -490,17 +490,17 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
           </div>
           {(() => {
              const priorityPower = (state.consumption?.loads || []).filter((l: any) => l.isPriority).reduce((acc: number, l: any) => acc + (l.powerW * l.qty), 0);
-             const maxInvPower = state.equipment.inverterPower || 0;
+             const maxInvPower = results?.recommendedInverterPowerW || state.equipment.inverterPower || 0;
              if (priorityPower > maxInvPower) {
                 return (
                    <div className="mb-6 p-4 border-l-4 border-[#E74C3C] bg-[#FDEDEC] dark:bg-[#2A1111] text-[#C0392B] rounded-r shadow-sm text-xs font-bold font-mono">
-                      Atenção: A soma das cargas prioritárias ({priorityPower}W) excede a capacidade ajustada ({maxInvPower}W). Risco de parada do sistema por sobrecarga em modo reserva.
+                      Atenção: A soma das cargas prioritárias ({priorityPower}W) excede o Inversor Automático ({maxInvPower}W). Risco de sobrecarga ou desarme.
                    </div>
                 );
              }
              return null;
           })()}
-          <Field label="Potência Nominal CA" unit="W" hint="Potência efetiva que converte a energia para o quadro elétrico."><Input type="number" value={state.equipment.inverterPower} onChange={updater('equipment','inverterPower')} disabled={selectedInverterId !== 'custom'} /></Field>
+          <Field label="Potência Nominal CA" unit="W" hint="Potência do Inversor (Automático/Calculado)."><Input type="number" readOnly value={results?.recommendedInverterPowerW || state.equipment.inverterPower} className="opacity-50" /></Field>
           <Field label="Máxima Tensão CC (Entrada)" unit="V" hint="Tensão que nunca deve ser excedida nem sob clima polar. Se excedida, destrói os circuitos de entrada."><Input type="number" value={state.equipment.inverterMaxDcV} onChange={updater('equipment','inverterMaxDcV')} disabled={selectedInverterId !== 'custom'} /></Field>
           <Field label="MPPT Voltagem Mínima" unit="V" hint="Tensão de base para garantir a captura das cadeias sob baixa luminosidade/nublado."><Input type="number" value={state.equipment.inverterMpptMinV} onChange={updater('equipment','inverterMpptMinV')} disabled={selectedInverterId !== 'custom'} /></Field>
           <Field label="MPPT Voltagem Máxima" unit="V" hint="Limite operacional no qual ocorre tracking eficaz com rendimento Euro (pico da parabólica de rendimento)."><Input type="number" value={state.equipment.inverterMpptMaxV} onChange={updater('equipment','inverterMpptMaxV')} disabled={selectedInverterId !== 'custom'} /></Field>

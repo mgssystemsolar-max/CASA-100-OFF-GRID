@@ -117,6 +117,7 @@ export interface CalculationResults {
   totalArea: number;
   totalWeight: number;
   dcAcRatio: number;
+  recommendedInverterPowerW?: number;
   performanceRatio: number;
   specificYield: number;
 

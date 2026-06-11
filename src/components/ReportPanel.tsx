@@ -183,7 +183,7 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
               <GridItem label="String Vmp Mín @ Calor" value={results.stringVmpMin.toFixed(1)} unit="V" warn={results.stringVmpMin < state.equipment.inverterMpptMinV} />
            </div>
            
-           <div className="mt-2 space-y-1">
+           <div className="hidden">
              {results.stringVocMax > (state.equipment.inverterMaxDcV || Infinity) && (
                 <div className="bg-[#FFF9F5] dark:bg-[#2A1E14] border border-[#D35400] text-[#D35400] text-[10px] p-2 font-mono flex items-center gap-2">
                   <ShieldAlert size={12} />
@@ -224,9 +224,119 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
            </div>
         </div>
 
+        {/* VALIDAÇÃO DE SEGURANÇA */}
+        <div className="print:break-inside-avoid mb-6">
+           <h3 className="text-[10px] bg-[#C0392B] text-white inline-block px-2 py-1 font-mono uppercase mb-2">3. Validação de Segurança (Limites Inversor)</h3>
+           <div className="bg-white dark:bg-[#1E1E1E] border border-line overflow-hidden">
+              <table className="w-full text-left font-sans text-xs">
+                 <thead className="bg-[#FAFAF9] dark:bg-[#2A2A2A] text-[#666] border-b border-line text-[9px] uppercase tracking-wider">
+                    <tr>
+                       <th className="p-2 font-normal whitespace-nowrap">Parâmetro Dimensional</th>
+                       <th className="p-2 font-normal text-right">Especificação (Arranjo)</th>
+                       <th className="p-2 font-normal text-right whitespace-nowrap">Limite Equipamento</th>
+                       <th className="p-2 font-normal text-center">Status</th>
+                    </tr>
+                 </thead>
+                 <tbody className="font-mono text-[11px] text-ink">
+                    <tr className="border-b border-line last:border-0 hover:bg-[#F9F9F7] dark:hover:bg-[#2A2A2A]">
+                       <td className="p-2 pl-3">Voc Máxima (Clima Frio)</td>
+                       <td className="p-2 text-right">{results.stringVocMax.toFixed(1)} V</td>
+                       <td className="p-2 text-right opacity-70">Máx. {state.equipment.inverterMaxDcV} V</td>
+                       <td className="p-2 text-center">
+                          {results.stringVocMax <= state.equipment.inverterMaxDcV ? (
+                             <span className="bg-[#27AE60] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase">OK</span>
+                          ) : (
+                             <span className="bg-[#E74C3C] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase font-bold">Risco</span>
+                          )}
+                       </td>
+                    </tr>
+                    <tr className="border-b border-line last:border-0 hover:bg-[#F9F9F7] dark:hover:bg-[#2A2A2A]">
+                       <td className="p-2 pl-3">Vmp Mínima (Clima Quente)</td>
+                       <td className="p-2 text-right">{results.stringVmpMin.toFixed(1)} V</td>
+                       <td className="p-2 text-right opacity-70">Mín. {state.equipment.inverterMpptMinV} V</td>
+                       <td className="p-2 text-center">
+                          {results.stringVmpMin >= state.equipment.inverterMpptMinV ? (
+                             <span className="bg-[#27AE60] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase">OK</span>
+                          ) : (
+                             <span className="bg-[#F39C12] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase font-bold">Aviso</span>
+                          )}
+                       </td>
+                    </tr>
+                    <tr className="border-b border-line last:border-0 hover:bg-[#F9F9F7] dark:hover:bg-[#2A2A2A]">
+                       <td className="p-2 pl-3">Corrente Curto-Circuito / MPPT</td>
+                       <td className="p-2 text-right">{results.currentPerMppt.toFixed(1)} A</td>
+                       <td className="p-2 text-right opacity-70">Máx. {state.equipment.inverterMaxI} A</td>
+                       <td className="p-2 text-center">
+                          {results.currentPerMppt <= state.equipment.inverterMaxI ? (
+                             <span className="bg-[#27AE60] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase">OK</span>
+                          ) : (
+                             <span className="bg-[#E74C3C] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase font-bold">Risco</span>
+                          )}
+                       </td>
+                    </tr>
+                    <tr className="border-b border-line last:border-0 hover:bg-[#F9F9F7] dark:hover:bg-[#2A2A2A]">
+                       <td className="p-2 pl-3">Sizing Factor (Oversizing)</td>
+                       <td className="p-2 text-right">{results.dcAcRatio.toFixed(2)}x</td>
+                       <td className="p-2 text-right opacity-70">Máx. {(state.sizing.maxDcAcRatio || 1.2).toFixed(2)}x</td>
+                       <td className="p-2 text-center">
+                          {results.dcAcRatio <= (state.sizing.maxDcAcRatio || 1.2) ? (
+                             <span className="bg-[#27AE60] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase">OK</span>
+                          ) : (
+                             <span className="bg-[#F39C12] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase font-bold">Aviso</span>
+                          )}
+                       </td>
+                    </tr>
+                    {(() => {
+                       const isHybridOrOff = state.sizing.systemType !== 'On-Grid';
+                       const priorityLoads = (state.consumption?.loads || []).filter((l: any) => isHybridOrOff ? l.isPriority : true);
+                       
+                       let priorityTotalPowerW = 0;
+                       if (state.consumption?.method === 'loadProfile') {
+                          priorityTotalPowerW = priorityLoads.reduce((acc: number, l: any) => acc + (l.powerW * l.qty), 0);
+                       } else if (isHybridOrOff) {
+                          const dailyWh = (state.consumption?.dailyKwh || 0) * 1000;
+                          priorityTotalPowerW = (dailyWh / 4) * (state.sizing.simultaneityFactor || 0.8);
+                       }
+
+                       if (isHybridOrOff && priorityTotalPowerW > 0) {
+                          return (
+                             <tr className="border-b border-line last:border-0 hover:bg-[#F9F9F7] dark:hover:bg-[#2A2A2A]">
+                                <td className="p-2 pl-3">Aten. em Backup / Plena Carga</td>
+                                <td className="p-2 text-right">{Math.ceil(priorityTotalPowerW)} W</td>
+                                <td className="p-2 text-right opacity-70">Máx. {state.equipment.inverterPower || 0} W</td>
+                                <td className="p-2 text-center">
+                                   {priorityTotalPowerW <= (state.equipment.inverterPower || 0) ? (
+                                      <span className="bg-[#27AE60] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase">OK</span>
+                                   ) : (
+                                      <span className="bg-[#E74C3C] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase font-bold">Risco</span>
+                                   )}
+                                </td>
+                             </tr>
+                          );
+                       }
+                       return null;
+                    })()}
+                 </tbody>
+              </table>
+           </div>
+        </div>
+
+        {state.sizing.systemType !== 'On-Grid' && (
+           <div className="print:break-inside-avoid">
+              <h3 className="text-[10px] bg-[#D35400] text-white inline-block px-2 py-1 font-mono uppercase mb-2">PONTOS DE ATENÇÃO (CARGAS PRIORITÁRIAS)</h3>
+              <div className="bg-[#FFF9F5] dark:bg-[#2A1E14] border border-[#E67E22] p-4 text-xs text-[#D35400] font-sans mb-6">
+                 <ul className="list-disc pl-4 space-y-2">
+                    <li><strong>01. Tensão dos Equipamentos:</strong> Verificar se a tensão (127V/220V) bate com a saída do inversor escolhido.</li>
+                    <li><strong>02. Equipamentos de Alta Potência:</strong> Cargas com motores dão pico de partida de 3 a 5 vezes o nominal. O Inversor {results.recommendedInverterPowerW ? `(automático: ${results.recommendedInverterPowerW}W)` : ''} precisa absorver o pico.</li>
+                    <li><strong>03. Quantidades de Fases das Cargas:</strong> Especificar claramente se as cargas são Bifásicas, Monofásicas ou Trifásicas e compatibilizar.</li>
+                 </ul>
+              </div>
+           </div>
+        )}
+
         {/* PROTEÇÕES CA/CC */}
         <div className="print:break-inside-avoid">
-           <h3 className="text-[10px] bg-[#34495E] text-white inline-block px-2 py-1 font-mono uppercase mb-2">3. Eng. Elétrica e Proteções</h3>
+           <h3 className="text-[10px] bg-[#34495E] text-white inline-block px-2 py-1 font-mono uppercase mb-2">4. Eng. Elétrica e Proteções</h3>
            <div className="grid grid-cols-2 gap-px bg-line border border-line">
               <GridItem label="Disjuntor CC (String P.)" value={`${results.breakerCcA}`} unit="A" />
               <GridItem label="DPS CC (Tensão Cont.)" value={`${results.dpsCcV}`} unit="V" />

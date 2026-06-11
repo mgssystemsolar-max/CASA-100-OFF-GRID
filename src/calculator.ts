@@ -96,6 +96,39 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   
   const totalArea = numModules * (s.equipment.moduleArea || 0);
   const totalWeight = numModules * (s.equipment.moduleWeight || 0);
+  
+  // ==========================================
+  // INVERTER AUTO-DIMENSIONING LOGIC
+  // ==========================================
+  let minInverterPowerW = actualPvPowerW / (s.sizing.maxDcAcRatio || 1.25);
+  
+  if (s.consumption.method === 'loadProfile' && s.consumption.loads && s.consumption.loads.length > 0) {
+     // Com base na soma das potências nominais (W) de todas as cargas cadastradas
+     let targetPower = 0;
+     s.consumption.loads.forEach(l => {
+        // margem de segurança de 25% para cargas de alta potência (>= 1000W)
+        const isHighPower = l.powerW >= 1000;
+        const margin = isHighPower ? 1.25 : 1.0;
+             
+        targetPower += (l.powerW * l.qty) * margin;
+     });
+     
+     if (targetPower > minInverterPowerW) {
+        minInverterPowerW = targetPower;
+     }
+  } else if (!isGrid) {
+     const peakApparentPowerVA = (hasPriorityLoads && s.sizing.systemType === 'Híbrido') ? effectivePriorityPeakPowerVA : effectivePeakPowerVA;
+     if (peakApparentPowerVA > minInverterPowerW) {
+        minInverterPowerW = peakApparentPowerVA;
+     }
+  }
+  
+  // Snap to commercial sizes
+  const commercialSizes = [1000, 1500, 2000, 3000, 4000, 5000, 6000, 8000, 10000, 12000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000];
+  let recommendedInverterPowerW = commercialSizes.find(size => size >= minInverterPowerW) || (Math.ceil(minInverterPowerW / 5000) * 5000);
+  
+  // Override for calculation
+  s.equipment.inverterPower = recommendedInverterPowerW;
   const dcAcRatio = actualPvPowerW / (s.equipment.inverterPower || 1);
 
   // Losses Waterfall Calculation
@@ -393,6 +426,7 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
     totalArea,
     totalWeight,
     dcAcRatio,
+    recommendedInverterPowerW: s.equipment.inverterPower,
     
     // Losses Breakdown
     energyNominalDc,
