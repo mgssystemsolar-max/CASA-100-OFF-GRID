@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppState, CalculationResults } from '../types';
-import { Download, FileText, Settings, ShieldAlert, AlertTriangle, Cpu, Zap, Battery, LineChart, Hash, Server, DollarSign, Activity } from 'lucide-react';
+import { Download, FileText, Settings, ShieldAlert, AlertTriangle, Cpu, Zap, Battery, LineChart, Hash, Server, DollarSign, Activity, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart as RechartsLineChart, Line, Legend } from 'recharts';
 
 export function ReportPanel({ state, results }: { state: AppState, results: CalculationResults }) {
@@ -27,8 +27,8 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
     document.body.removeChild(link);
   };
 
-  const GridItem = ({ label, value, unit, icon: Icon, warn = false }: any) => (
-    <div className={`p-4 border-b border-line bg-white dark:bg-[#1E1E1E] ${warn ? 'border-l-4 border-l-[#D35400]' : ''}`}>
+  const GridItem = ({ label, value, unit, icon: Icon, warn = false, title }: any) => (
+    <div className={`p-4 border-b border-line bg-white dark:bg-[#1E1E1E] ${warn ? 'border-l-4 border-l-[#D35400]' : ''}`} title={title}>
       <div className="flex items-center justify-between mb-1">
         <span className="text-[10px] text-[#666] uppercase tracking-wider flex items-center gap-1">
           {Icon && <Icon className="w-3 h-3 opacity-60" />} {label}
@@ -208,6 +208,19 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
                   !! ALERTA: A Relação DC/AC atual ({results.dcAcRatio.toFixed(2)}) ultrapassa o limite especificado ({state.sizing.maxDcAcRatio}). Considere um inversor maior.
                 </div>
              )}
+             {(() => {
+                const priorityPower = (state.consumption?.loads || []).filter((l: any) => l.isPriority).reduce((acc: number, l: any) => acc + (l.powerW * l.qty), 0);
+                const maxInvPower = state.equipment.inverterPower || 0;
+                if (priorityPower > maxInvPower) {
+                   return (
+                      <div className="bg-[#FDEDEC] dark:bg-[#2A1111] border border-[#E74C3C] text-[#C0392B] text-[10px] p-2 font-mono flex items-center gap-2">
+                         <ShieldAlert size={12} />
+                         !! ALERTA: A somatória das cargas prioritárias ({priorityPower}W) excede a capacidade nominal do inversor ({maxInvPower}W). Risco de desarme do sistema.
+                      </div>
+                   );
+                }
+                return null;
+             })()}
            </div>
         </div>
 
@@ -233,6 +246,37 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
                 <GridItem icon={Cpu} label="Topologia Física" value={`${results.battSer}S ${results.battPar}P`} unit="arr." />
                 <GridItem label="Energia Bruta" value={results.storageKwhBruto.toFixed(1)} unit="kWh" />
                 <GridItem label="Energia Útil (V_DoD)" value={results.storageKwhUtil.toFixed(1)} unit="kWh" />
+                {(() => {
+                  const isHybrid = state.sizing.systemType === 'Híbrido';
+                  const isLoadProfile = state.consumption?.method === 'loadProfile';
+                  const priorityLoads = (state.consumption?.loads || []).filter((l: any) => isHybrid ? l.isPriority : true);
+                  
+                  let totalPowerW = 0;
+                  let dailyEnergyWh = 0;
+                  
+                  if (!isLoadProfile) {
+                    dailyEnergyWh = (state.consumption?.dailyKwh || 0) * 1000;
+                    totalPowerW = dailyEnergyWh / 24; // Simple continuous average
+                  } else {
+                    priorityLoads.forEach((l: any) => {
+                      totalPowerW += (l.powerW || 0) * (l.qty || 1);
+                      dailyEnergyWh += (l.powerW || 0) * (l.qty || 1) * (l.hoursPerDay || 0);
+                    });
+                  }
+                  
+                  if (dailyEnergyWh === 0 && totalPowerW === 0) return null;
+                  
+                  const averagePowerW = dailyEnergyWh > 0 ? dailyEnergyWh / 24 : 0;
+                  const autonomyAvgProfile = averagePowerW > 0 ? (results.storageKwhUtil * 1000) / averagePowerW : 0;
+                  const autonomyMaxPower = totalPowerW > 0 ? (results.storageKwhUtil * 1000) / totalPowerW : 0;
+
+                  return (
+                    <>
+                      <GridItem icon={Clock} label="Autonomia (Uso Médio)" value={autonomyAvgProfile > 0 ? autonomyAvgProfile.toFixed(1) : '-'} unit="h" title="Com base no consumo diário espaçado" />
+                      <GridItem icon={Clock} label="Autonomia (Plena Carga)" value={autonomyMaxPower > 0 ? autonomyMaxPower.toFixed(1) : '-'} unit="h" title="Todos os equipamentos prioritários ao mesmo tempo" />
+                    </>
+                  );
+                })()}
             </div>
           </div>
         )}
@@ -390,7 +434,7 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
         </div>
 
         <div className="hidden print:block mt-8 pt-4 border-t border-line text-center opacity-60">
-           <div className="text-[14px] font-bold tracking-[0.2em] uppercase text-ink">PvStudio Pro Enterprise</div>
+           <div className="text-[14px] font-bold tracking-[0.2em] uppercase text-ink">Casa Off-Grid</div>
            <div className="text-[9px] font-mono mt-1">Plataforma de Engenharia Avançada • Validação Automática NBR/IEC</div>
         </div>
 

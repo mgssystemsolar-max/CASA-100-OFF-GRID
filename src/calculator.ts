@@ -203,7 +203,9 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   }
 
   // 7. Financeiro (LCOE, VPL, TIR)
-  const hardwareBase = actualPvPowerW * s.finance.capexPerWp;
+  const hardwareBase = s.finance.costMethod === 'total' 
+    ? (s.finance.finalKitCost || 20000)
+    : actualPvPowerW * s.finance.capexPerWp;
   const battBase = totalBatts * s.finance.batteryCostPerUnit;
   const capexTotal = hardwareBase + battBase;
   
@@ -222,11 +224,16 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   let solarCum = -capexTotal;
   let accumSavings = 0;
   
+  const dieselCapex = s.finance.dieselGensetCost || 15000;
+  const dieselFuelCostYearly = (s.finance.dieselFuelPrice || 6.0) * (s.finance.dieselConsumptionPerHour || 2.5) * (s.finance.dieselRuntimeYearly || 100);
+  let dieselCumulative = -dieselCapex;
+  
   economicData.push({
     year: 0,
     noSolarCumulative: 0,
     solarCumulative: solarCum,
     cumulativeSavings: 0,
+    dieselCumulative: dieselCumulative,
     capexLine: capexTotal
   });
 
@@ -254,11 +261,15 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
     // Which means: solarCum = solarCum - (billNoSolar - savings) - costs
     solarCum += (savings - costs) - billNoSolar;
     
+    let currentDieselCosts = (dieselFuelCostYearly + (s.finance.dieselOpexYearly || 1200)) * Math.pow(1 + inflation, y);
+    dieselCumulative -= billNoSolar + currentDieselCosts;
+    
     economicData.push({
       year: y,
       noSolarCumulative: noSolarCum,
       solarCumulative: solarCum,
       cumulativeSavings: accumSavings,
+      dieselCumulative: dieselCumulative,
       capexLine: capexTotal
     });
   }

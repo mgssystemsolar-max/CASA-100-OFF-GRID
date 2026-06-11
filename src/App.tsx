@@ -28,11 +28,12 @@ const defaultState: AppState = {
     batteryTech: 'LiFePO4', batteryVoltage: 48, batteryCapacity: 100, batteryDod: 80, batteryCycles: 6000, batteryMaxDischargeA: 50
   },
   sizing: {
-    systemType: 'Híbrido', autonomyDays: 1, simultaneityFactor: 0.8, cableDistanceDc: 20, cableDistanceAc: 10, oversizingFactor: 10, maxDcAcRatio: 1.20,
+    systemType: 'Off-Grid', autonomyDays: 1, simultaneityFactor: 0.8, cableDistanceDc: 20, cableDistanceAc: 10, oversizingFactor: 10, maxDcAcRatio: 1.20,
     losses: { shading: 2.0, soiling: 1.5, mismatch: 1.0, cabling: 1.5 }
   },
   finance: {
-    capexPerWp: 3.50, batteryCostPerUnit: 4000, opexYearly: 500, energyTariff: 1.05, tariffInflation: 4.5, discountRate: 10.0, analysisYears: 25
+    costMethod: 'perWp', finalKitCost: 20000, capexPerWp: 3.50, batteryCostPerUnit: 4000, opexYearly: 500, energyTariff: 1.05, tariffInflation: 4.5, discountRate: 10.0, analysisYears: 25,
+    dieselGensetCost: 15000, dieselFuelPrice: 6.0, dieselConsumptionPerHour: 2.5, dieselRuntimeYearly: 50, dieselOpexYearly: 1200
   },
   backup: {
     enabled: false, frequency: 'manual', method: 'local'
@@ -93,7 +94,7 @@ export default function App() {
         <div className="flex items-center gap-3">
           <Sun className="w-5 h-5 text-accent" />
           <h1 className="text-lg font-serif italic m-0 text-ink tracking-wide">
-            PvStudio Pro <span className="font-sans font-bold text-xs uppercase bg-black dark:bg-[#333] text-white px-2 py-1 not-italic ml-2 tracking-widest rounded-sm">Enterprise</span>
+            Casa <span className="font-sans font-bold text-xs uppercase bg-black dark:bg-[#333] text-white px-2 py-1 not-italic ml-2 tracking-widest rounded-sm">Off-Grid</span>
           </h1>
         </div>
         <div className="flex gap-4 font-mono text-xs items-center">

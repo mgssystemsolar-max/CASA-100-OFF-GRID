@@ -47,10 +47,31 @@ export const Select = (props: any) => (
 const MODULE_DATABASE = [
   { id: 'custom', name: 'Personalizado (Entrada Manual)' },
   { id: 'jinko_550', name: 'Jinko Solar Tiger Pro 545-555W', power: 550, voc: 49.9, vmp: 40.9, isc: 14.01, imp: 13.45, coeffVoc: -0.25, coeffPmax: -0.35, eff: 21.33, area: 2.58, weight: 28.9 },
+  { id: 'jinko_575', name: 'JinkoSolar Tiger Neo N-type 575W', power: 575, voc: 51.27, vmp: 42.22, isc: 14.31, imp: 13.62, coeffVoc: -0.25, coeffPmax: -0.29, eff: 22.26, area: 2.58, weight: 28.0 },
   { id: 'longi_545', name: 'LONGI Hi-MO5 545W', power: 545, voc: 49.65, vmp: 41.8, isc: 13.92, imp: 13.04, coeffVoc: -0.26, coeffPmax: -0.34, eff: 21.1, area: 2.58, weight: 27.5 },
+  { id: 'longi_580', name: 'LONGI Hi-MO6 Explorer 580W', power: 580, voc: 52.06, vmp: 43.91, isc: 14.14, imp: 13.21, coeffVoc: -0.23, coeffPmax: -0.29, eff: 22.5, area: 2.58, weight: 27.5 },
   { id: 'canadian_600', name: 'Canadian Solar HiKu7 600W', power: 600, voc: 41.3, vmp: 34.9, isc: 18.52, imp: 17.2, coeffVoc: -0.26, coeffPmax: -0.34, eff: 21.2, area: 2.83, weight: 31.0 },
+  { id: 'canadian_650', name: 'Canadian Solar HiKu7 650W', power: 650, voc: 38.5, vmp: 32.2, isc: 21.46, imp: 20.19, coeffVoc: -0.26, coeffPmax: -0.34, eff: 20.9, area: 3.11, weight: 34.4 },
   { id: 'trina_550', name: 'Trina Vertex 550W', power: 550, voc: 37.9, vmp: 31.6, isc: 18.52, imp: 17.4, coeffVoc: -0.25, coeffPmax: -0.34, eff: 21.0, area: 2.62, weight: 28.6 },
+  { id: 'trina_670', name: 'Trina Vertex 670W', power: 670, voc: 46.1, vmp: 38.2, isc: 18.62, imp: 17.55, coeffVoc: -0.25, coeffPmax: -0.34, eff: 21.6, area: 3.10, weight: 33.9 },
   { id: 'osda_550', name: 'OSDA Solar 550W', power: 550, voc: 50.0, vmp: 41.8, isc: 13.99, imp: 13.16, coeffVoc: -0.27, coeffPmax: -0.35, eff: 21.3, area: 2.58, weight: 28.6 },
+  { id: 'jasolar_550', name: 'JA Solar DeepBlue 3.0 550W', power: 550, voc: 49.9, vmp: 41.96, isc: 14.00, imp: 13.11, coeffVoc: -0.27, coeffPmax: -0.35, eff: 21.3, area: 2.58, weight: 28.6 },
+];
+
+const INVERTER_DATABASE = [
+  { id: 'custom', name: 'Personalizado (Entrada Manual)' },
+  { id: 'deye_sun_5k', name: 'Deye 5kW SUN-5K-SG03LP1-EU', power: 5000, maxDcV: 500, mpptMinV: 150, mpptMaxV: 425, mpptCount: 2, maxI: 13, eff: 97.6 },
+  { id: 'deye_sun_8k', name: 'Deye 8kW SUN-8K-SG01LP1-EU', power: 8000, maxDcV: 500, mpptMinV: 150, mpptMaxV: 425, mpptCount: 2, maxI: 26, eff: 97.6 },
+  { id: 'deye_sun_12k', name: 'Deye 12kW SUN-12K-SG04LP3-EU', power: 12000, maxDcV: 800, mpptMinV: 200, mpptMaxV: 650, mpptCount: 2, maxI: 26, eff: 97.6 },
+  { id: 'growatt_min5k', name: 'Growatt MIN 5000TL-X', power: 5000, maxDcV: 550, mpptMinV: 80, mpptMaxV: 500, mpptCount: 2, maxI: 13.5, eff: 98.4 },
+  { id: 'growatt_mac60k', name: 'Growatt MAC 60KTL3-X LV', power: 60000, maxDcV: 1100, mpptMinV: 200, mpptMaxV: 1000, mpptCount: 3, maxI: 40, eff: 98.8 },
+  { id: 'fronius_primo5', name: 'Fronius Primo 5.0-1', power: 5000, maxDcV: 1000, mpptMinV: 200, mpptMaxV: 800, mpptCount: 2, maxI: 12, eff: 98.1 },
+  { id: 'fronius_symo15', name: 'Fronius Symo 15.0-3-M', power: 15000, maxDcV: 1000, mpptMinV: 320, mpptMaxV: 800, mpptCount: 2, maxI: 27, eff: 98.1 },
+  { id: 'sungrow_rs5', name: 'Sungrow SG5.0RS', power: 5000, maxDcV: 600, mpptMinV: 40, mpptMaxV: 560, mpptCount: 2, maxI: 16, eff: 97.9 },
+  { id: 'sungrow_cx33', name: 'Sungrow SG33CX', power: 33000, maxDcV: 1100, mpptMinV: 200, mpptMaxV: 1000, mpptCount: 3, maxI: 26, eff: 98.6 },
+  { id: 'huawei_sun5k', name: 'Huawei SUN2000-5KTL-L1', power: 5000, maxDcV: 600, mpptMinV: 90, mpptMaxV: 560, mpptCount: 2, maxI: 12.5, eff: 98.4 },
+  { id: 'huawei_sun30k', name: 'Huawei SUN2000-30KTL-M3', power: 30000, maxDcV: 1100, mpptMinV: 200, mpptMaxV: 1000, mpptCount: 4, maxI: 26, eff: 98.7 },
+  { id: 'solis_5k', name: 'Solis 5K-2G', power: 5000, maxDcV: 600, mpptMinV: 90, mpptMaxV: 520, mpptCount: 2, maxI: 11, eff: 97.8 },
 ];
 
 export function ModularForms({ state, update, currentTab, results }: { state: AppState, update: Function, currentTab: string, results?: CalculationResults }) {
@@ -62,6 +83,7 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
   const [isLocating, setIsLocating] = React.useState(false);
   const [isFetchingClimate, setIsFetchingClimate] = React.useState(false);
   const [selectedModuleId, setSelectedModuleId] = React.useState('custom');
+  const [selectedInverterId, setSelectedInverterId] = React.useState('custom');
 
   const onModuleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
@@ -79,6 +101,23 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
         update('equipment', 'moduleEfficiency', sp.eff);
         update('equipment', 'moduleArea', sp.area);
         update('equipment', 'moduleWeight', sp.weight);
+      }
+    }
+  };
+
+  const onInverterSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value;
+    setSelectedInverterId(id);
+    if (id !== 'custom') {
+      const inv = INVERTER_DATABASE.find(i => i.id === id);
+      if (inv) {
+        update('equipment', 'inverterPower', inv.power);
+        update('equipment', 'inverterMaxDcV', inv.maxDcV);
+        update('equipment', 'inverterMpptMinV', inv.mpptMinV);
+        update('equipment', 'inverterMpptMaxV', inv.mpptMaxV);
+        update('equipment', 'inverterMpptCount', inv.mpptCount);
+        update('equipment', 'inverterMaxI', inv.maxI);
+        update('equipment', 'inverterEfficiency', inv.eff);
       }
     }
   };
@@ -362,6 +401,20 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
               </div>
             </div>
             
+            {(() => {
+              const priorityPower = (state.consumption.loads || []).filter((l: any) => l.isPriority).reduce((acc: number, l: any) => acc + (l.powerW * l.qty), 0);
+              const maxInvPower = state.equipment.inverterPower || 0;
+              if (priorityPower > maxInvPower) {
+                return (
+                  <div className="mt-4 p-4 border border-[#E74C3C] bg-[#FDEDEC] dark:bg-[#2A1111] text-[#C0392B] rounded shadow-sm text-xs font-bold flex items-start">
+                    <svg className="w-4 h-4 mr-2 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <span>Lembrete: A potência somada das cargas prioritárias ({priorityPower}W) excede a capacidade nominal do inversor ({maxInvPower}W). Ajuste o inversor ou reveja as cargas para evitar desarme.</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             {/* Daily Load Profile Chart */}
             {(state.consumption.loads || []).length > 0 && (() => {
                const profile = Array.from({ length: 24 }).map((_, i) => ({ hour: `${i}h`, kw: 0 }));
@@ -427,13 +480,33 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
           <Field label="Peso do Módulo" unit="kg"><Input type="number" step="0.1" value={state.equipment.moduleWeight} onChange={updater('equipment','moduleWeight')} disabled={selectedModuleId !== 'custom'} /></Field>
         </Block>
         <Block title="Inversor de Frequência (OND)">
-          <Field label="Potência Nominal CA" unit="W" hint="Potência efetiva que converte a energia para o quadro elétrico."><Input type="number" value={state.equipment.inverterPower} onChange={updater('equipment','inverterPower')} /></Field>
-          <Field label="Máxima Tensão CC (Entrada)" unit="V" hint="Tensão que nunca deve ser excedida nem sob clima polar. Se excedida, destrói os circuitos de entrada."><Input type="number" value={state.equipment.inverterMaxDcV} onChange={updater('equipment','inverterMaxDcV')} /></Field>
-          <Field label="MPPT Voltagem Mínima" unit="V" hint="Tensão de base para garantir a captura das cadeias sob baixa luminosidade/nublado."><Input type="number" value={state.equipment.inverterMpptMinV} onChange={updater('equipment','inverterMpptMinV')} /></Field>
-          <Field label="MPPT Voltagem Máxima" unit="V" hint="Limite operacional no qual ocorre tracking eficaz com rendimento Euro (pico da parabólica de rendimento)."><Input type="number" value={state.equipment.inverterMpptMaxV} onChange={updater('equipment','inverterMpptMaxV')} /></Field>
-          <Field label="Quant. de MPPTs" unit="un." hint="Número de rastreadores de máxima potência independentes disponíveis no inversor."><Input type="number" min="1" value={state.equipment.inverterMpptCount || 1} onChange={updater('equipment','inverterMpptCount')} /></Field>
-          <Field label="Corrente Máx. por MPPT" unit="A" hint="Limite de corrente de curto-circuito (Isc) ou operação (Imp) suportado por cada entrada MPPT do inversor."><Input type="number" value={state.equipment.inverterMaxI} onChange={updater('equipment','inverterMaxI')} /></Field>
-          <Field label="Eficiência Euro" unit="%" hint="Eficiência Europeia média ponderada nos estágios de carga e tensão intermédias."><Input type="number" step="0.1" value={state.equipment.inverterEfficiency} onChange={updater('equipment','inverterEfficiency')} /></Field>
+          <div className="mb-4 p-4 border-b border-line bg-[#FAFAF9] dark:bg-[#1A1A1A]">
+            <label className="block text-[10px] uppercase font-bold text-[#666] tracking-widest mb-2">Base de Dados de Inversores</label>
+            <Select value={selectedInverterId} onChange={onInverterSelect}>
+              {INVERTER_DATABASE.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </Select>
+          </div>
+          {(() => {
+             const priorityPower = (state.consumption?.loads || []).filter((l: any) => l.isPriority).reduce((acc: number, l: any) => acc + (l.powerW * l.qty), 0);
+             const maxInvPower = state.equipment.inverterPower || 0;
+             if (priorityPower > maxInvPower) {
+                return (
+                   <div className="mb-6 p-4 border-l-4 border-[#E74C3C] bg-[#FDEDEC] dark:bg-[#2A1111] text-[#C0392B] rounded-r shadow-sm text-xs font-bold font-mono">
+                      Atenção: A soma das cargas prioritárias ({priorityPower}W) excede a capacidade ajustada ({maxInvPower}W). Risco de parada do sistema por sobrecarga em modo reserva.
+                   </div>
+                );
+             }
+             return null;
+          })()}
+          <Field label="Potência Nominal CA" unit="W" hint="Potência efetiva que converte a energia para o quadro elétrico."><Input type="number" value={state.equipment.inverterPower} onChange={updater('equipment','inverterPower')} disabled={selectedInverterId !== 'custom'} /></Field>
+          <Field label="Máxima Tensão CC (Entrada)" unit="V" hint="Tensão que nunca deve ser excedida nem sob clima polar. Se excedida, destrói os circuitos de entrada."><Input type="number" value={state.equipment.inverterMaxDcV} onChange={updater('equipment','inverterMaxDcV')} disabled={selectedInverterId !== 'custom'} /></Field>
+          <Field label="MPPT Voltagem Mínima" unit="V" hint="Tensão de base para garantir a captura das cadeias sob baixa luminosidade/nublado."><Input type="number" value={state.equipment.inverterMpptMinV} onChange={updater('equipment','inverterMpptMinV')} disabled={selectedInverterId !== 'custom'} /></Field>
+          <Field label="MPPT Voltagem Máxima" unit="V" hint="Limite operacional no qual ocorre tracking eficaz com rendimento Euro (pico da parabólica de rendimento)."><Input type="number" value={state.equipment.inverterMpptMaxV} onChange={updater('equipment','inverterMpptMaxV')} disabled={selectedInverterId !== 'custom'} /></Field>
+          <Field label="Quant. de MPPTs" unit="un." hint="Número de rastreadores de máxima potência independentes disponíveis no inversor."><Input type="number" min="1" value={state.equipment.inverterMpptCount || 1} onChange={updater('equipment','inverterMpptCount')} disabled={selectedInverterId !== 'custom'} /></Field>
+          <Field label="Corrente Máx. por MPPT" unit="A" hint="Limite de corrente de curto-circuito (Isc) ou operação (Imp) suportado por cada entrada MPPT do inversor."><Input type="number" value={state.equipment.inverterMaxI} onChange={updater('equipment','inverterMaxI')} disabled={selectedInverterId !== 'custom'} /></Field>
+          <Field label="Eficiência Euro" unit="%" hint="Eficiência Europeia média ponderada nos estágios de carga e tensão intermédias."><Input type="number" step="0.1" value={state.equipment.inverterEfficiency} onChange={updater('equipment','inverterEfficiency')} disabled={selectedInverterId !== 'custom'} /></Field>
         </Block>
         <Block title="Bateria (BESS)">
           <Field label="Química Celular">
@@ -541,7 +614,17 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
     return (
       <div className="animate-in fade-in duration-300">
         <Block title="Inputs Econômicos e Valuation">
-          <Field label="CAPEX: Preço por Wp Base" unit="R$/Wp" hint="Capital Expenditure: Avalia o custo de compra + instalação padronizado por Watt pico. (Ex: 3,50 $/Wp)"><Input type="number" step="0.01" value={state.finance.capexPerWp} onChange={updater('finance','capexPerWp')} /></Field>
+          <Field label="Método de Custo do Kit">
+            <Select value={state.finance.costMethod || 'perWp'} onChange={updater('finance','costMethod')}>
+              <option value="perWp">Estimado por R$ / Watt-pico (Wp)</option>
+              <option value="total">Valor Fixo (Preço Final do Kit)</option>
+            </Select>
+          </Field>
+          {state.finance.costMethod === 'total' ? (
+            <Field label="Valor do Kit (Final)" unit="R$" hint="Valor total do orçamento fechado do kit solar fotovoltaico para cálculo do payback."><Input type="number" step="100" value={state.finance.finalKitCost || 20000} onChange={updater('finance','finalKitCost')} /></Field>
+          ) : (
+            <Field label="CAPEX: Preço por Wp Base" unit="R$/Wp" hint="Capital Expenditure: Avalia o custo de compra + instalação padronizado por Watt pico. (Ex: 3,50 $/Wp)"><Input type="number" step="0.01" value={state.finance.capexPerWp} onChange={updater('finance','capexPerWp')} /></Field>
+          )}
           <Field label="CAPEX: Preço Bateria Unid." unit="R$"><Input type="number" step="10" value={state.finance.batteryCostPerUnit} onChange={updater('finance','batteryCostPerUnit')} /></Field>
           <Field label="OPEX Anual Estimado" unit="R$/ano" hint="Operational Expenditure: Despesa contínua, operação e manutenção do sistema anualmente."><Input type="number" value={state.finance.opexYearly} onChange={updater('finance','opexYearly')} /></Field>
           <Field label="Tarifa Energia Atual" unit="R$/kWh"><Input type="number" step="0.01" value={state.finance.energyTariff} onChange={updater('finance','energyTariff')} /></Field>
@@ -550,9 +633,17 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
           <Field label="Prazo de Análise" unit="Anos" hint="Ciclo de vida analisado para avaliação do fluxo de caixa e retorno financeiro."><Input type="number" value={state.finance.analysisYears} onChange={updater('finance','analysisYears')} /></Field>
         </Block>
 
+        <Block title="Alternativa: Gerador a Diesel (Comparativo TCO)">
+          <Field label="Custo Inicial (CAPEX Gerador)" unit="R$" hint="Valor pago na aquisição do gerador."><Input type="number" step="100" value={state.finance.dieselGensetCost || 15000} onChange={updater('finance','dieselGensetCost')} /></Field>
+          <Field label="Preço do Diesel" unit="R$/L"><Input type="number" step="0.1" value={state.finance.dieselFuelPrice || 6.0} onChange={updater('finance','dieselFuelPrice')} /></Field>
+          <Field label="Consumo do Gerador" unit="L/h"><Input type="number" step="0.1" value={state.finance.dieselConsumptionPerHour || 2.5} onChange={updater('finance','dieselConsumptionPerHour')} /></Field>
+          <Field label="Uso Estimado Anual" unit="hs/ano" hint="Quantas horas por ano estima-se que o gerador ficará ligado como backup."><Input type="number" step="1" value={state.finance.dieselRuntimeYearly || 100} onChange={updater('finance','dieselRuntimeYearly')} /></Field>
+          <Field label="Manutenção Anual (Gerador)" unit="R$/ano"><Input type="number" step="100" value={state.finance.dieselOpexYearly || 1200} onChange={updater('finance','dieselOpexYearly')} /></Field>
+        </Block>
+
         {results && results.economicData && (
           <div className="mt-8 border border-line bg-white dark:bg-[#1E1E1E] p-4">
-            <h3 className="text-[10px] uppercase tracking-widest text-[#666] font-bold mb-4 text-center">Curva de Retorno de Investimento (Payback)</h3>
+            <h3 className="text-[10px] uppercase tracking-widest text-[#666] font-bold mb-4 text-center">Curva de Retorno de Investimento (Payback / TCO)</h3>
             <div className="w-full h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={results.economicData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
@@ -565,8 +656,9 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
                     contentStyle={{ fontSize: '12px', fontFamily: 'monospace' }} 
                   />
                   <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px', fontFamily: 'sans-serif' }} />
-                  <Line type="monotone" dataKey="capexLine" name="Custo CAPEX" stroke="#E74C3C" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-                  <Line type="monotone" dataKey="cumulativeSavings" name="Economia Acumulada" stroke="#3498DB" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="capexLine" name="Custo CAPEX Solar" stroke="#E74C3C" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                  <Line type="monotone" dataKey="cumulativeSavings" name="Fluxo Sistema Solar" stroke="#3498DB" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="dieselCumulative" name="Fluxo Gerador Diesel" stroke="#9B59B6" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

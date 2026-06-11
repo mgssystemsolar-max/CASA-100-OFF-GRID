@@ -82,6 +82,8 @@ export interface AppState {
     cableDistanceAc: number;
   };
   finance: {
+    costMethod?: 'perWp' | 'total';
+    finalKitCost?: number;
     capexPerWp: number;
     batteryCostPerUnit: number;
     opexYearly: number;
@@ -89,6 +91,11 @@ export interface AppState {
     tariffInflation: number;
     discountRate: number;
     analysisYears: number;
+    dieselGensetCost?: number;
+    dieselFuelPrice?: number;
+    dieselConsumptionPerHour?: number;
+    dieselRuntimeYearly?: number;
+    dieselOpexYearly?: number;
   };
   backup: {
     enabled: boolean;
