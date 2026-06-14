@@ -23,6 +23,7 @@ const defaultState: AppState = {
     ]
   },
   equipment: {
+    inverterMode: 'auto',
     modulePower: 550, moduleVoc: 49.8, moduleVmp: 41.5, moduleIsc: 14.1, moduleImp: 13.2, moduleTempCoeffVoc: -0.27, moduleTempCoeffPmax: -0.34, moduleEfficiency: 21.3, moduleArea: 2.58, moduleWeight: 28.6,
     inverterPower: 8000, inverterMaxDcV: 1000, inverterMpptMinV: 160, inverterMpptMaxV: 850, inverterMpptCount: 2, inverterMaxI: 22, inverterEfficiency: 98.3,
     batteryTech: 'LiFePO4', batteryVoltage: 48, batteryCapacity: 100, batteryDod: 80, batteryCycles: 6000, batteryMaxDischargeA: 50

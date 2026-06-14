@@ -59,6 +59,7 @@ const MODULE_DATABASE = [
 ];
 
 const INVERTER_DATABASE = [
+  { id: 'auto', name: 'Dimensionamento Automático Pelo Sistema (Ideal)' },
   { id: 'custom', name: 'Personalizado (Entrada Manual)' },
   { id: 'deye_sun_5k', name: 'Deye 5kW SUN-5K-SG03LP1-EU', power: 5000, maxDcV: 500, mpptMinV: 150, mpptMaxV: 425, mpptCount: 2, maxI: 13, eff: 97.6 },
   { id: 'deye_sun_8k', name: 'Deye 8kW SUN-8K-SG01LP1-EU', power: 8000, maxDcV: 500, mpptMinV: 150, mpptMaxV: 425, mpptCount: 2, maxI: 26, eff: 97.6 },
@@ -83,7 +84,7 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
   const [isLocating, setIsLocating] = React.useState(false);
   const [isFetchingClimate, setIsFetchingClimate] = React.useState(false);
   const [selectedModuleId, setSelectedModuleId] = React.useState('custom');
-  const [selectedInverterId, setSelectedInverterId] = React.useState('custom');
+  const [selectedInverterId, setSelectedInverterId] = React.useState('auto');
 
   const onModuleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
@@ -108,16 +109,21 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
   const onInverterSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
     setSelectedInverterId(id);
-    if (id !== 'custom') {
-      const inv = INVERTER_DATABASE.find(i => i.id === id);
-      if (inv) {
-        update('equipment', 'inverterPower', inv.power);
-        update('equipment', 'inverterMaxDcV', inv.maxDcV);
-        update('equipment', 'inverterMpptMinV', inv.mpptMinV);
-        update('equipment', 'inverterMpptMaxV', inv.mpptMaxV);
-        update('equipment', 'inverterMpptCount', inv.mpptCount);
-        update('equipment', 'inverterMaxI', inv.maxI);
-        update('equipment', 'inverterEfficiency', inv.eff);
+    if (id === 'auto') {
+      update('equipment', 'inverterMode', 'auto');
+    } else {
+      update('equipment', 'inverterMode', 'manual');
+      if (id !== 'custom') {
+        const inv = INVERTER_DATABASE.find(i => i.id === id);
+        if (inv) {
+          update('equipment', 'inverterPower', inv.power);
+          update('equipment', 'inverterMaxDcV', inv.maxDcV);
+          update('equipment', 'inverterMpptMinV', inv.mpptMinV);
+          update('equipment', 'inverterMpptMaxV', inv.mpptMaxV);
+          update('equipment', 'inverterMpptCount', inv.mpptCount);
+          update('equipment', 'inverterMaxI', inv.maxI);
+          update('equipment', 'inverterEfficiency', inv.eff);
+        }
       }
     }
   };
@@ -279,11 +285,25 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
   if (currentTab === 'clima') {
     return (
       <div className="animate-in fade-in duration-300">
+        <Block title="Captura Automática de Dados Solares (CRECESB / INMET)">
+           <div className="col-span-1 md:col-span-2 xl:col-span-3 p-4 relative bg-[#FAFAF9] dark:bg-[#1A1A1A] border-b border-line">
+              <div className="flex items-center gap-2 mb-4 text-[#C0392B] font-bold text-xs uppercase">
+                 <MapPin className="w-4 h-4" /> Selecione as Coordenadas para Sincronizar o HSP (Substitui entrada manual)
+              </div>
+              <MapPicker lat={state.project.lat} lng={state.project.lng} onChange={(lat, lng) => {
+                 update('project', 'lat', lat);
+                 update('project', 'lng', lng);
+                 fetchClimateData(lat, lng);
+              }} />
+              {isFetchingClimate && <div className="absolute inset-0 bg-white/80 dark:bg-[#121212]/80 flex items-center justify-center font-bold text-sm text-[#C0392B] z-10 backdrop-blur-sm">Sincronizando banco de dados solar...</div>}
+           </div>
+        </Block>
+
         <Block title="Potencial Solar Meteorológico (GHI/DNI)">
-          <Field label="Irradiação Média (HSP)" unit="kWh/m²/dia"><Input type="number" step="0.01" value={state.climate.hsp} onChange={updater('climate','hsp')} /></Field>
-          <Field label="Temperatura Média Anual" unit="°C"><Input type="number" value={state.climate.avgTemp} onChange={updater('climate','avgTemp')} /></Field>
-          <Field label="Temperátura Mínima Extrema" unit="°C"><Input type="number" value={state.climate.minTemp} onChange={updater('climate','minTemp')} /></Field>
-          <Field label="Temperatura Máxima Extrema" unit="°C"><Input type="number" value={state.climate.maxTemp} onChange={updater('climate','maxTemp')} /></Field>
+          <Field label="Irradiação Média (HSP / CRECESB)" hint="Valor obtido automaticamente pelas coordenadas geográficas." unit="kWh/m²/dia"><Input type="number" readOnly className="opacity-60 bg-transparent" value={state.climate.hsp} /></Field>
+          <Field label="Temperatura Média Anual" unit="°C"><Input type="number" readOnly className="opacity-60 bg-transparent" value={state.climate.avgTemp} /></Field>
+          <Field label="Temperátura Mínima Extrema" unit="°C"><Input type="number" readOnly className="opacity-60 bg-transparent" value={state.climate.minTemp} /></Field>
+          <Field label="Temperatura Máxima Extrema" unit="°C"><Input type="number" readOnly className="opacity-60 bg-transparent" value={state.climate.maxTemp} /></Field>
         </Block>
         
         {state.climate.monthlyHsp && state.climate.monthlyHsp.length === 12 && (
@@ -306,7 +326,7 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
            </div>
         )}
         
-        <div className="text-xs text-[#888] font-mono mt-4 p-4 border border-line border-dashed text-center">Integração API Open-Meteo</div>
+        <div className="text-[10px] text-[#888] font-mono mt-4 p-4 border border-line border-dashed text-center">Os dados de Radiação Solar (GHI) são sincronizados via modelagem climática equivalente às fontes oficiais (INPE/CRECESB) a partir da geolocalização.</div>
       </div>
     );
   }
@@ -500,8 +520,8 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
              }
              return null;
           })()}
-          <Field label="Potência Nominal CA" unit="W" hint="Potência do Inversor (Automático/Calculado)."><Input type="number" readOnly value={results?.recommendedInverterPowerW || state.equipment.inverterPower} className="opacity-50" /></Field>
-          <Field label="Máxima Tensão CC (Entrada)" unit="V" hint="Tensão que nunca deve ser excedida nem sob clima polar. Se excedida, destrói os circuitos de entrada."><Input type="number" value={state.equipment.inverterMaxDcV} onChange={updater('equipment','inverterMaxDcV')} disabled={selectedInverterId !== 'custom'} /></Field>
+          <Field label="Potência Nominal CA" unit="W" hint={selectedInverterId === 'auto' ? "Potência do Inversor (Sugerida pelo dimensionamento)" : "Potência efetiva que converte a energia"}><Input type="number" readOnly={selectedInverterId === 'auto'} value={selectedInverterId === 'auto' ? results?.recommendedInverterPowerW || state.equipment.inverterPower : state.equipment.inverterPower} onChange={updater('equipment','inverterPower')} className={selectedInverterId === 'auto' ? "opacity-50" : ""} disabled={selectedInverterId !== 'custom' && selectedInverterId !== 'auto'} /></Field>
+          <Field label="Máxima Tensão CC (Entrada)" unit="V" hint="Tensão máxima absoluta."><Input type="number" value={state.equipment.inverterMaxDcV} onChange={updater('equipment','inverterMaxDcV')} disabled={selectedInverterId !== 'custom'} /></Field>
           <Field label="MPPT Voltagem Mínima" unit="V" hint="Tensão de base para garantir a captura das cadeias sob baixa luminosidade/nublado."><Input type="number" value={state.equipment.inverterMpptMinV} onChange={updater('equipment','inverterMpptMinV')} disabled={selectedInverterId !== 'custom'} /></Field>
           <Field label="MPPT Voltagem Máxima" unit="V" hint="Limite operacional no qual ocorre tracking eficaz com rendimento Euro (pico da parabólica de rendimento)."><Input type="number" value={state.equipment.inverterMpptMaxV} onChange={updater('equipment','inverterMpptMaxV')} disabled={selectedInverterId !== 'custom'} /></Field>
           <Field label="Quant. de MPPTs" unit="un." hint="Número de rastreadores de máxima potência independentes disponíveis no inversor."><Input type="number" min="1" value={state.equipment.inverterMpptCount || 1} onChange={updater('equipment','inverterMpptCount')} disabled={selectedInverterId !== 'custom'} /></Field>

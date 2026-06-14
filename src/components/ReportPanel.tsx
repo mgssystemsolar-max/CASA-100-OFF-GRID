@@ -112,7 +112,7 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
            <h3 className="text-[10px] bg-ink text-white inline-block px-2 py-1 font-mono uppercase mb-2">1. Geração e Desempenho</h3>
            <div className="grid grid-cols-2 gap-px bg-line border border-line mb-6">
               <GridItem icon={Zap} label="Energia Mensal Gerada" value={results.monthlyEnergyKwh.toLocaleString('pt-BR')} unit="kWh/mês" />
-              <GridItem icon={LineChart} label="Potência FV Recomendada" value={(results.actualPvPowerW/1000).toFixed(2)} unit="kWp" />
+              <GridItem icon={LineChart} label={`Potência Pico da Usina (${results.numModules}x ${state.equipment.modulePower}W)`} value={(results.actualPvPowerW/1000).toFixed(2)} unit="kWp" />
               <GridItem label="Performance Ratio (PR)" value={(results.performanceRatio * 100).toFixed(1)} unit="%" />
               <GridItem label="Yield Específico" value={results.specificYield.toFixed(0)} unit="kWh/kWp/ano" />
            </div>

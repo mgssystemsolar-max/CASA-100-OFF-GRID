@@ -42,6 +42,7 @@ export interface AppState {
     loads: LoadItem[];
   };
   equipment: {
+    inverterMode?: 'auto' | 'manual';
     modulePower: number;
     moduleVoc: number;
     moduleVmp: number;

@@ -127,8 +127,10 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   const commercialSizes = [1000, 1500, 2000, 3000, 4000, 5000, 6000, 8000, 10000, 12000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000];
   let recommendedInverterPowerW = commercialSizes.find(size => size >= minInverterPowerW) || (Math.ceil(minInverterPowerW / 5000) * 5000);
   
-  // Override for calculation
-  s.equipment.inverterPower = recommendedInverterPowerW;
+  // Override for calculation if set to Auto
+  if (s.equipment.inverterMode === 'auto' || !s.equipment.inverterMode) {
+     s.equipment.inverterPower = recommendedInverterPowerW;
+  }
   const dcAcRatio = actualPvPowerW / (s.equipment.inverterPower || 1);
 
   // Losses Waterfall Calculation
