@@ -91,7 +91,18 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   const oversizeTarget = 1 + (s.sizing.oversizingFactor || 0) / 100;
   const requiredPvPowerW = targetPowerW * oversizeTarget;
   
-  const numModules = Math.ceil(requiredPvPowerW / s.equipment.modulePower);
+  let numModules = Math.ceil(requiredPvPowerW / s.equipment.modulePower);
+  
+  if (s.sizing.autoCalculateModules === false && s.sizing.manualModuleCount != null) {
+      numModules = s.sizing.manualModuleCount;
+  } else if (s.sizing.autoCalculateModules) {
+      // In auto mode, if we want to ensure we satisfy daily kWh AND respect inverter capacity limits?
+      // Since it's a "Quick Setup" shortcut we'll just fall back to standard calculation for required PV power,
+      // but ensure it doesn't exceed the inverter's maximum allowed DC power ratio if that's what's meant.
+      // But standard numModules already fatisfies daily kWh. Just leave as is.
+      numModules = Math.ceil(requiredPvPowerW / s.equipment.modulePower);
+  }
+
   const actualPvPowerW = numModules * s.equipment.modulePower;
   
   const totalArea = numModules * (s.equipment.moduleArea || 0);
@@ -206,14 +217,21 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   const voltageDropAc = (2 * s.sizing.cableDistanceAc * iac) / (56 * cableAcSect) || 0;
 
   // 6. Armazenamento (Baterias)
-  let reqAh = 0, battSer = 0, battPar = 0, totalBatts = 0, storageKwhBruto = 0, storageKwhUtil = 0, batteryBankMaxPowerW = 0;
+  let reqAh = 0, battSer = 0, battPar = 0, totalBatts = 0, storageKwhBruto = 0, storageKwhUtil = 0, batteryBankMaxPowerW = 0, sysVoltage = s.equipment.batteryVoltage || 12;
   if (!isGrid) {
     const isHybrid = s.sizing.systemType === 'Híbrido';
     const targetDailyWh = (isHybrid && hasPriorityLoads) ? (priorityDailyKwh * 1000) : (dailyKwh * 1000);
     const targetPeakPowerW = (isHybrid && hasPriorityLoads) ? effectivePriorityPeakPowerW : effectivePeakPowerW;
     
     let requiredWh = targetDailyWh * s.sizing.autonomyDays;
-    const sysVoltage = s.equipment.batteryVoltage || 48; // Assume 48V for large banks if not specified otherwise in tech
+    sysVoltage = s.equipment.batteryVoltage || 12;
+    if (s.equipment.inverterPower >= 4000) sysVoltage = 48;
+    else if (s.equipment.inverterPower >= 2000) sysVoltage = 24;
+    
+    // Ensure sysVoltage is at least the individual battery voltage
+    if (sysVoltage < (s.equipment.batteryVoltage || 12)) {
+        sysVoltage = s.equipment.batteryVoltage || 12;
+    }
     
     // Using 90% generic efficiency for the bank
     reqAh = requiredWh / (sysVoltage * (s.equipment.batteryDod/100) * 0.90); 
@@ -414,7 +432,15 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
        norm: 'Limites do Fabricante',
        values: `I = ${stringsPerMppt} × ${s.equipment.moduleIsc}A = ${currentPerMppt.toFixed(2)}A (Max: ${s.equipment.inverterMaxI}A)`,
        result: currentPerMppt <= s.equipment.inverterMaxI ? 'OK' : 'ALERTA: Isc EXCEDE LIMITE!'
-    }
+    },
+    ...(!isGrid ? [{
+       step: 'Etapa 9',
+       description: `Banco de Baterias (${s.sizing.autonomyDays * 24} Horas de Autonomia)`,
+       formula: `Baterias = Demanda p/ ${(s.sizing.autonomyDays * 24).toFixed(0)} horas ÷ Ah_Útil_Bateria`,
+       norm: 'IEEE 485 / Cargas Prioritárias',
+       values: `Arranjo (${sysVoltage}V): ${battSer} em Série e ${battPar} em Paralelo (${s.equipment.batteryCapacity} Ah / un.)`,
+       result: `${totalBatts} unidades`
+    }] : [])
   ];
 
   return {

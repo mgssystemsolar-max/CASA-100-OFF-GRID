@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppState, CalculationResults } from '../types';
 import { Download, FileText, Settings, ShieldAlert, AlertTriangle, Cpu, Zap, Battery, LineChart, Hash, Server, DollarSign, Activity, Clock } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart as RechartsLineChart, Line, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart as RechartsLineChart, Line, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 
 export function ReportPanel({ state, results }: { state: AppState, results: CalculationResults }) {
   
@@ -435,6 +435,38 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
            </div>
         </div>
 
+        {/* COMPARATIVO DE BATERIAS */}
+        {state.sizing.systemType !== 'On-Grid' && (
+         <div className="print:break-inside-avoid mt-8">
+            <h3 className="text-[10px] bg-[#16A085] text-white inline-block px-2 py-1 font-mono uppercase mb-2">5B. Comparativo de Tecnologias (Baterias)</h3>
+            <div className="bg-white dark:bg-[#1E1E1E] border border-line p-4">
+              <div className="text-xs font-mono text-[#666] mb-4 uppercase tracking-widest text-center">
+                Desempenho Relativo: LiFePO4 vs Gel vs AGM
+              </div>
+              <div className="w-full h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={[
+                    { subject: 'Ciclos Úteis', LiFePO4: 100, Gel: 25, AGM: 15 },
+                    { subject: 'Uso Útil (DoD)', LiFePO4: 100, Gel: 60, AGM: 40 },
+                    { subject: 'Custo-Benefício', LiFePO4: 95, Gel: 60, AGM: 50 },
+                    { subject: 'Resist. Temp.', LiFePO4: 90, Gel: 80, AGM: 50 },
+                    { subject: 'Estabilidade', LiFePO4: 100, Gel: 75, AGM: 60 },
+                  ]}>
+                    <PolarGrid stroke="#E0E0E0" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9, fill: '#666' }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                    <Radar name={state.equipment.batteryTech.includes('LiFe') ? 'LiFePO4 (Config Atual)' : 'LiFePO4'} dataKey="LiFePO4" stroke="#27AE60" fill="#27AE60" fillOpacity={0.5} />
+                    <Radar name={state.equipment.batteryTech.includes('Gel') ? 'Chumbo-Ácido/Gel (Config Atual)' : 'Chumbo/Gel'} dataKey="Gel" stroke="#F39C12" fill="#F39C12" fillOpacity={0.3} />
+                    <Radar name={state.equipment.batteryTech.includes('AGM') ? 'Estacionária/AGM (Config Atual)' : 'AGM'} dataKey="AGM" stroke="#E74C3C" fill="#E74C3C" fillOpacity={0.3} />
+                    <Legend wrapperStyle={{ fontSize: '10px' }} />
+                    <Tooltip contentStyle={{ fontSize: '12px', fontFamily: 'monospace' }} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+         </div>
+        )}
+
         {/* ECONOMIC ANALYSIS */}
         <div className="print:break-inside-avoid mt-8">
            <h3 className="text-[10px] bg-[#2980B9] text-white inline-block px-2 py-1 font-mono uppercase mb-2">6. Análise Econômica de Longo Prazo</h3>
@@ -537,7 +569,7 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
             <li>- {results.numModules}x Módulos Fotovoltaicos de {state.equipment.modulePower}W ({results.actualPvPowerW/1000} kWp)</li>
             <li>- 1x Inversor {state.sizing.systemType} de {state.equipment.inverterPower}W</li>
             {state.sizing.systemType !== 'On-Grid' && (
-              <li>- {results.totalBatts}x Baterias {state.equipment.batteryTech} {state.equipment.batteryVoltage}V {state.equipment.batteryCapacity}Ah ({results.storageKwhBruto.toFixed(1)} kWh bruto)</li>
+              <li>- {results.totalBatts}x Baterias {state.equipment.batteryTech} {state.equipment.batteryVoltage}V {state.equipment.batteryCapacity}Ah (Suporta as cargas em uso simulado por {state.sizing.autonomyDays * 24} horas - {results.storageKwhBruto.toFixed(1)} kWh bruto)</li>
             )}
             <li>- String box / Quadros CA e Proteções (DPS, Disjuntores) dimensionados NBR 5410/16690</li>
             <li>- Cabos solares e conectores MC4 correspondentes</li>

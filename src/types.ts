@@ -73,6 +73,8 @@ export interface AppState {
     simultaneityFactor?: number; // Coeficiente de simultaneidade (0.0 to 1.0)
     oversizingFactor: number;
     maxDcAcRatio: number;
+    autoCalculateModules?: boolean; // Quick Setup shortcut
+    manualModuleCount?: number;
     losses: {
       shading: number;
       soiling: number;

@@ -550,6 +550,45 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
     return (
       <div className="animate-in fade-in duration-300">
         <Block title="Diretrizes do Sistema (Configurações de Dimensionamento)">
+          <div className="mb-4 p-4 border border-[#3498DB] bg-[#EAF2F8] dark:bg-[#1A252E] dark:border-[#2980B9]">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-bold text-[#2980B9] uppercase tracking-widest flex items-center gap-2">
+                <Zap className="w-4 h-4" /> Dimensionamento de Módulos (Quick Setup)
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <span className="text-[10px] font-mono uppercase text-[#666]">Auto-Calcular</span>
+                <input 
+                  type="checkbox" 
+                  className="accent-[#2980B9] w-4 h-4" 
+                  checked={state.sizing.autoCalculateModules !== false} 
+                  onChange={(e) => update('sizing', 'autoCalculateModules', e.target.checked)} 
+                />
+              </label>
+            </div>
+            
+            <p className="text-[10px] text-[#666] mb-3">
+              No modo Automático, o sistema calcula o número exato de módulos com base no consumo, HSP e perdas, validando limites do inversor.
+            </p>
+            
+            <div className={`flex items-center gap-4 transition-opacity ${state.sizing.autoCalculateModules !== false ? 'opacity-50 pointer-events-none' : ''}`}>
+               <div className="flex-1">
+                 <label className="block text-[10px] uppercase font-bold text-[#666] mb-1">Módulos (Forçar Quantidade)</label>
+                 <Input 
+                   type="number" 
+                   min="1" 
+                   value={state.sizing.manualModuleCount || 1} 
+                   onChange={(e) => update('sizing', 'manualModuleCount', Number(e.target.value))} 
+                 />
+               </div>
+               <div className="flex-1">
+                  <div className="text-[10px] uppercase font-bold text-[#666] mb-1">Pico Sugerido</div>
+                  <div className="font-mono text-sm font-bold text-[#2980B9] p-2 bg-white dark:bg-[#121212] border border-line flex items-center justify-center">
+                    {results?.numModules || 0} unid. ({((results?.actualPvPowerW || 0) / 1000).toFixed(2)} kWp)
+                  </div>
+               </div>
+            </div>
+          </div>
+
           <Field label="Tipo de Arquitetura">
             <Select value={state.sizing.systemType} onChange={updater('sizing','systemType')}>
               <option>On-Grid</option>
@@ -557,7 +596,19 @@ export function ModularForms({ state, update, currentTab, results }: { state: Ap
               <option>Híbrido</option>
             </Select>
           </Field>
-          <Field label="Autonomia Desejada (Off/Híbr." unit="Dias" hint="Quantidade de dias que o banco de baterias deve sustentar as cargas sem sol (Duração da Autonomia)."><Input type="number" step="0.5" value={state.sizing.autonomyDays} onChange={updater('sizing','autonomyDays')} /></Field>
+          <Field label="Autonomia Desejada (Off/Híbr.)" hint="Quantidade de dias que o banco de baterias deve sustentar as cargas sem sol (Duração da Autonomia).">
+            <div className="flex flex-col w-full gap-3 mt-1">
+              <div className="flex items-center gap-3 w-full">
+                <input type="range" min="0.5" max="5" step="0.5" value={state.sizing.autonomyDays} onChange={updater('sizing','autonomyDays')} className="flex-1 accent-[#F39C12]" />
+                <Input type="number" step="0.5" style={{width: '60px'}} value={state.sizing.autonomyDays} onChange={updater('sizing','autonomyDays')} /> <span className="text-xs font-mono text-[#888]">dias</span>
+              </div>
+              {state.sizing.systemType !== 'On-Grid' && results && (
+                 <div className="text-[10px] text-[#D35400] font-mono font-bold bg-[#FFF9F5] dark:bg-[#2A1E14] border border-[#E67E22]/30 px-2 py-1.5 self-start">
+                    ➔ Exigência (Banco): {results.storageKwhBruto.toFixed(1)} kWh ({results.totalBatts}x {state.equipment.batteryCapacity}Ah)
+                 </div>
+              )}
+            </div>
+          </Field>
           <Field label="Fato de Simultaneidade" unit="" hint="Parcela das cargas prioritárias que funcionará ao mesmo tempo (0.1 a 1.0). Fundamental para não sobrecarregar inversor/bateria."><Input type="number" step="0.1" min="0.1" max="1.0" value={state.sizing.simultaneityFactor || 0.8} onChange={updater('sizing','simultaneityFactor')} /></Field>
           <Field label="Oversize (Margem)" unit="%" hint="Margem adicional de potência CC acrescida para lidar com degradação secular e crescimento de consumo.">
             <Select value={state.sizing.oversizingFactor} onChange={updater('sizing','oversizingFactor')}>
