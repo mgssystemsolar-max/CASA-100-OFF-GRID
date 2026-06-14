@@ -206,7 +206,7 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
   const voltageDropAc = (2 * s.sizing.cableDistanceAc * iac) / (56 * cableAcSect) || 0;
 
   // 6. Armazenamento (Baterias)
-  let reqAh = 0, battSer = 0, battPar = 0, totalBatts = 0, storageKwhBruto = 0, storageKwhUtil = 0;
+  let reqAh = 0, battSer = 0, battPar = 0, totalBatts = 0, storageKwhBruto = 0, storageKwhUtil = 0, batteryBankMaxPowerW = 0;
   if (!isGrid) {
     const isHybrid = s.sizing.systemType === 'Híbrido';
     const targetDailyWh = (isHybrid && hasPriorityLoads) ? (priorityDailyKwh * 1000) : (dailyKwh * 1000);
@@ -224,13 +224,14 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
     
     // 5. Respeitar o limite de potência da bateria
     const maxDischargeA = s.equipment.batteryMaxDischargeA || 50;
-    const batteryBankMaxPowerW = battPar * maxDischargeA * sysVoltage; 
+    batteryBankMaxPowerW = battPar * maxDischargeA * sysVoltage; 
 
     // If battery power is not enough for target peak, increase parallel branches
     if (batteryBankMaxPowerW < targetPeakPowerW) {
         let additionalBattPar = Math.ceil((targetPeakPowerW - batteryBankMaxPowerW) / (maxDischargeA * sysVoltage));
         battPar += additionalBattPar;
         totalBatts = battSer * battPar;
+        batteryBankMaxPowerW = battPar * maxDischargeA * sysVoltage;
     }
 
     storageKwhBruto = (totalBatts * (s.equipment.batteryVoltage || 12) * (s.equipment.batteryCapacity || 100)) / 1000;
@@ -445,7 +446,7 @@ export function runEngineeringCalculations(s: AppState): CalculationResults {
     mpptCount, stringsPerMppt, currentPerMppt,
     iscArray, breakerCcA, breakerAcA, cableAcSect, cableDcSect, voltageDropDc, voltageDropAc, dpsCcV,
     
-    reqAh, battSer, battPar, totalBatts, storageKwhBruto, storageKwhUtil,
+    reqAh, battSer, battPar, totalBatts, storageKwhBruto, storageKwhUtil, batteryBankMaxPowerW,
     
     capexTotal, lcoe, vpl, tir, payback, roi, yearlySavingsStart, economicData,
     

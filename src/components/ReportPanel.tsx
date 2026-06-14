@@ -275,14 +275,14 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
                        </td>
                     </tr>
                     <tr className="border-b border-line last:border-0 hover:bg-[#F9F9F7] dark:hover:bg-[#2A2A2A]">
-                       <td className="p-2 pl-3">Sizing Factor (Oversizing)</td>
-                       <td className="p-2 text-right">{results.dcAcRatio.toFixed(2)}x</td>
-                       <td className="p-2 text-right opacity-70">Máx. {(state.sizing.maxDcAcRatio || 1.2).toFixed(2)}x</td>
+                       <td className="p-2 pl-3">Sizing Factor (Overloading)</td>
+                       <td className={`p-2 text-right ${results.dcAcRatio > (state.sizing.maxDcAcRatio || 1.25) ? 'text-[#e74c3c] font-bold' : ''}`}>{results.dcAcRatio.toFixed(2)}x</td>
+                       <td className="p-2 text-right opacity-70">Máx. {(state.sizing.maxDcAcRatio || 1.25).toFixed(2)}x</td>
                        <td className="p-2 text-center">
-                          {results.dcAcRatio <= (state.sizing.maxDcAcRatio || 1.2) ? (
+                          {results.dcAcRatio <= (state.sizing.maxDcAcRatio || 1.25) ? (
                              <span className="bg-[#27AE60] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase">OK</span>
                           ) : (
-                             <span className="bg-[#F39C12] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase font-bold">Aviso</span>
+                             <span className="bg-[#E74C3C] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase font-bold" title="Sobrecarregamento (Overloading) acima do recomendado!">Risco</span>
                           )}
                        </td>
                     </tr>
@@ -300,18 +300,34 @@ export function ReportPanel({ state, results }: { state: AppState, results: Calc
 
                        if (isHybridOrOff && priorityTotalPowerW > 0) {
                           return (
-                             <tr className="border-b border-line last:border-0 hover:bg-[#F9F9F7] dark:hover:bg-[#2A2A2A]">
-                                <td className="p-2 pl-3">Aten. em Backup / Plena Carga</td>
-                                <td className="p-2 text-right">{Math.ceil(priorityTotalPowerW)} W</td>
-                                <td className="p-2 text-right opacity-70">Máx. {state.equipment.inverterPower || 0} W</td>
-                                <td className="p-2 text-center">
-                                   {priorityTotalPowerW <= (state.equipment.inverterPower || 0) ? (
-                                      <span className="bg-[#27AE60] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase">OK</span>
-                                   ) : (
-                                      <span className="bg-[#E74C3C] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase font-bold">Risco</span>
-                                   )}
-                                </td>
-                             </tr>
+                             <>
+                                <tr className="border-b border-line last:border-0 hover:bg-[#F9F9F7] dark:hover:bg-[#2A2A2A]">
+                                   <td className="p-2 pl-3">Aten. em Backup / Plena Carga</td>
+                                   <td className="p-2 text-right">{Math.ceil(priorityTotalPowerW)} W</td>
+                                   <td className="p-2 text-right opacity-70">Máx. {state.equipment.inverterPower || 0} W</td>
+                                   <td className="p-2 text-center">
+                                      {priorityTotalPowerW <= (state.equipment.inverterPower || 0) ? (
+                                         <span className="bg-[#27AE60] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase">OK</span>
+                                      ) : (
+                                         <span className="bg-[#E74C3C] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase font-bold">Risco</span>
+                                      )}
+                                   </td>
+                                </tr>
+                                {results.batteryBankMaxPowerW > 0 && (
+                                <tr className="border-b border-line last:border-0 hover:bg-[#F9F9F7] dark:hover:bg-[#2A2A2A]">
+                                   <td className="p-2 pl-3">Dimensionamento Inv. vs Bateria</td>
+                                   <td className={`p-2 text-right ${((state.equipment.inverterPower || 0) < results.batteryBankMaxPowerW) ? 'text-[#e74c3c] font-bold' : ''}`}>Inv {state.equipment.inverterPower || 0}W</td>
+                                   <td className="p-2 text-right opacity-70">Banco {results.batteryBankMaxPowerW.toFixed(0)}W</td>
+                                   <td className="p-2 text-center">
+                                      {(state.equipment.inverterPower || 0) >= results.batteryBankMaxPowerW ? (
+                                         <span className="bg-[#27AE60] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase">OK</span>
+                                      ) : (
+                                         <span className="bg-[#E74C3C] text-white px-2 py-0.5 rounded-sm text-[9px] uppercase font-bold text-center">ALERTA</span>
+                                      )}
+                                   </td>
+                                </tr>
+                                )}
+                             </>
                           );
                        }
                        return null;
